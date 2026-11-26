@@ -49,6 +49,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private long lastPendingRetry;
     private double boostMultiplier = 1.0;
     private long boostExpiresAt = 0L;
+    private Listener voteListener;
 
     @Override public void onEnable() {
         getLogger().info("Loading config.yml...");
@@ -72,6 +73,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             new ShadowXKeyAllExpansion(this).register();
             getLogger().info("PlaceholderAPI expansion registered: %shadowxkeyall_<placeholder>%");
         }
+        registerVoteIntegration();
         ticker = Bukkit.getScheduler().runTaskTimer(this, this::tick, 20L, 20L);
         for (Player player : Bukkit.getOnlinePlayers()) {
             activity.put(player.getUniqueId(), System.currentTimeMillis());
@@ -838,6 +840,68 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         history.add(Instant.now() + " " + entry);
         while (history.size() > 500) history.remove(0);
     }
+
+    private void registerVoteIntegration() {
+        if (!getConfig().getBoolean("integrations.voting.enabled", false)) return;
+        org.bukkit.plugin.Plugin votifier = Bukkit.getPluginManager().getPlugin("Votifier");
+        if (votifier == null) votifier = Bukkit.getPluginManager().getPlugin("NuVotifier");
+        if (votifier == null) {
+            getLogger().warning("Voting integration is enabled but NuVotifier/Votifier was not found.");
+            return;
+        }
+        try {
+            Class<?> rawEvent = Class.forName("com.vexsoftware.votifier.model.VotifierEvent", true, votifier.getClass().getClassLoader());
+            if (!Event.class.isAssignableFrom(rawEvent)) throw new IllegalStateException("VotifierEvent is not a Bukkit Event.");
+            @SuppressWarnings("unchecked")
+            Class<? extends Event> eventClass = (Class<? extends Event>) rawEvent;
+            voteListener = new Listener() {};
+            Bukkit.getPluginManager().registerEvent(eventClass, voteListener, EventPriority.NORMAL,
+                    (listener, event) -> {
+                        try {
+                            Object vote = event.getClass().getMethod("getVote").invoke(event);
+                            String username = String.valueOf(vote.getClass().getMethod("getUsername").invoke(vote));
+                            Bukkit.getScheduler().runTask(this, () -> processVote(username));
+                        } catch (ReflectiveOperationException ex) {
+                            getLogger().warning("Could not read NuVotifier vote event: " + ex.getMessage());
+                        }
+                    }, this, true);
+            getLogger().info("NuVotifier vote rewards listener registered.");
+        } catch (ReflectiveOperationException | IllegalStateException ex) {
+            getLogger().warning("Could not register NuVotifier integration: " + ex.getMessage());
+        }
+    }
+
+    private void processVote(String username) {
+        if (!getConfig().getBoolean("integrations.voting.enabled", false)) return;
+        org.bukkit.OfflinePlayer offline = Bukkit.getOfflinePlayer(username);
+        if (!offline.isOnline() && !offline.hasPlayedBefore()) {
+            getLogger().warning("Ignored vote for unknown player '" + username + "' because their UUID is not known yet.");
+            return;
+        }
+        int voteAmount = Math.max(1, getConfig().getInt("integrations.voting.amount", 1));
+        List<String> keys = getConfig().getStringList("integrations.voting.keys");
+        int processed = 0;
+        Player online = offline.getPlayer();
+        for (String id : keys) {
+            if (!nextRuns.containsKey(id)) {
+                getLogger().warning("integrations.voting.keys contains unknown key id '" + id + "'.");
+                continue;
+            }
+            if (online != null && eligible(online, id) && give(online, id, voteAmount)) {
+                processed++;
+            } else {
+                queue(offline.getUniqueId(), id, voteAmount);
+                processed++;
+            }
+        }
+        if (processed == 0) return;
+        addHistory("VOTE player=" + offline.getUniqueId() + " keys=" + keys + " amount=" + voteAmount);
+        if (online == null) getLogger().info("Queued vote rewards for offline player " + username + ".");
+        else online.sendMessage(color(msg("prefix") + "&aVote rewards processed. Thank you for voting!"));
+        saveData();
+        sendDiscord("Vote reward processed for **" + username + "**.");
+    }
+
     private void sendDiscord(String message) {
         if (!getConfig().getBoolean("integrations.discord.enabled", false)) return;
         String webhook = getConfig().getString("integrations.discord.webhook-url", "").trim();

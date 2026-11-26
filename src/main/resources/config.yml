@@ -33,5 +33,9 @@ integrations:
   discord:
     enabled: false
     webhook-url: ""
+  voting:
+    enabled: false
+    amount: 1
+    keys: [vote]
 maintenance:
   enabled: false
