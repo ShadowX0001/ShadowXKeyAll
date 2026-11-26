@@ -393,8 +393,10 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
 
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            if (sender instanceof Player p) openGui(p);
-            else send(sender, "&eActive key timers: &b" + nextRuns.size());
+            if (sender instanceof Player p) {
+                if (!p.hasPermission("shadowxkeyall.use")) { send(p, msg("no-permission")); return true; }
+                openGui(p);
+            } else send(sender, "&eActive key timers: &b" + nextRuns.size());
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
@@ -456,6 +458,30 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
 
     private void requireKey(String id) { if (!nextRuns.containsKey(id)) throw new IllegalArgumentException(msg("errors.key-not-found")); }
+
+    public String placeholderValue(String identifier, Player player) {
+        if (identifier.equalsIgnoreCase("keys_count")) return String.valueOf(nextRuns.size());
+        if (identifier.equalsIgnoreCase("pending_total")) {
+            return String.valueOf(pending.getOrDefault(player.getUniqueId(), Collections.emptyMap()).values().stream().mapToInt(Integer::intValue).sum());
+        }
+        if (identifier.equalsIgnoreCase("next_key")) {
+            String id = nearestTimer();
+            return id == null ? "" : id;
+        }
+        if (identifier.equalsIgnoreCase("next_time")) {
+            String id = nearestTimer();
+            return id == null ? "--:--" : format(Math.max(0, nextRuns.get(id) - System.currentTimeMillis()));
+        }
+        if (identifier.startsWith("time_")) {
+            String id = identifier.substring(5);
+            return nextRuns.containsKey(id) ? format(Math.max(0, nextRuns.get(id) - System.currentTimeMillis())) : "";
+        }
+        if (identifier.startsWith("pending_")) {
+            String id = identifier.substring(8);
+            return String.valueOf(pending.getOrDefault(player.getUniqueId(), Collections.emptyMap()).getOrDefault(id, 0));
+        }
+        return null;
+    }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "give", "giveall", "pending", "clearpending", "history", "preview").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("set", "giveall").contains(args[0].toLowerCase(Locale.ROOT))) return keyIds().stream().filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
@@ -492,8 +518,8 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
 
     private void grantBonus(Player player, String id, int count, String reason) {
-        if (count <= 0 || !nextRuns.containsKey(id) || !eligible(player, id)) return;
-        if (!give(player, id, count)) queue(player.getUniqueId(), id, count);
+        if (count <= 0 || !nextRuns.containsKey(id)) return;
+        if (!eligible(player, id) || !give(player, id, count)) queue(player.getUniqueId(), id, count);
         addHistory("BONUS type=" + reason + " player=" + player.getUniqueId() + " key=" + id + " amount=" + count);
     }
 
