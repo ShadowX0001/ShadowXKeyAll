@@ -6,9 +6,13 @@ Multi-key timed crate distribution for Paper servers. Built with Java 21 and Pap
 - Multiple independent key timers configured in `rewards.yml`.
 - Per-key amount, display name, reward commands, permission, minimum playtime, world blacklist and online/offline mode.
 - Persistent timer state and per-player pending key queues in `data/players.yml`.
-- Offline rewards are delivered when the player next joins and passes configured eligibility checks.
+- Offline rewards are delivered when the player next joins and passes configured eligibility checks. Pending rewards are also retried periodically while the player is online.
 - First-join, daily, weekly and monthly per-key join bonuses.
 - Optional daily, weekly and monthly calendar schedules in `schedules.yml`.
+- Optional dynamic key intervals based on online player count.
+- Optional lucky extra keys, daily login streak rewards and per-player cooldowns.
+- Admin settings GUI for BossBar, ActionBar, chat, scoreboard and maintenance toggles.
+- Optional asynchronous Discord webhook notifications.
 - BossBar, ActionBar, chat countdown and configurable sidebar countdown.
 - Configurable warning chat, title/subtitle and sounds.
 - Inventory overview GUI and pending reward count.
@@ -59,7 +63,8 @@ Tokens: `%player%`, `%uuid%`, `%key%`, `%amount%`.
 - `/keyall status` or `/keyall preview`
 - `/keyall start|stop|pause|resume|reload`
 - `/keyall set <keyId> <seconds>`
-- `/keyall give <online-player> <keyId> <amount>`
+- `/keyall give <player> <keyId> <amount>` - online players receive immediately; offline players are queued.
+- `/keyall settings` - open admin settings GUI
 - `/keyall giveall <keyId> [amount]`
 - `/keyall pending <player>`
 - `/keyall clearpending <player>`
@@ -79,6 +84,7 @@ When installed, these placeholders are registered:
 ## Important notes
 - `ONLINE_AND_OFFLINE` queues rewards for previously joined offline players. Their permission, playtime, AFK and world eligibility is evaluated when they next join.
 - `OFFLINE_ONLY` skips online delivery and queues rewards for offline players.
+- `player-interval-seconds` in each key can enforce an individual per-player cooldown. Dynamic intervals, lucky extra drops and streak bonuses are optional per-key settings.
 - `ONLINE_ONLY` does not create offline queues.
 - Crate reward commands are integration fallbacks: Bukkit confirming that a command was dispatched does not prove the crate plugin actually granted the key. Test your exact crate command before enabling automatic cycles.
 - Paper 1.21.x is the supported target. Other Paper versions may work while APIs remain compatible. Server-side behavior still requires live testing on the target server.
