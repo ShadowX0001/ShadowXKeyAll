@@ -1,4 +1,10 @@
 # ShadowXKeyAll settings. Durations are seconds.
+# Fallback reward commands used only when a key has no commands in rewards.yml.
+# Available tokens: %player%, %uuid%, %key%, %key_name%, %amount%.
+key-commands:
+  default: []
+  # Example for a crate plugin: ["crazycrates give virtual %key% %amount% %player%"]
+  default-command: ""
 timer:
   start-on-enable: true
   save-interval-seconds: 30
