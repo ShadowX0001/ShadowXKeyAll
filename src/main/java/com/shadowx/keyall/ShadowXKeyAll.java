@@ -10,6 +10,7 @@ import org.bukkit.command.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
 import org.bukkit.event.*;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -21,6 +22,8 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -89,7 +92,29 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
 
     private FileConfiguration loadYaml(String name) {
         File f = file(name);
-        return YamlConfiguration.loadConfiguration(f);
+        YamlConfiguration yaml = new YamlConfiguration();
+        try {
+            yaml.load(f);
+            return yaml;
+        } catch (IOException | InvalidConfigurationException ex) {
+            getLogger().severe("Cannot load " + name + ": " + ex.getMessage());
+            File backup = new File(f.getParentFile(), f.getName() + ".broken-" + System.currentTimeMillis());
+            try {
+                Files.copy(f.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                getLogger().severe("Invalid file backed up to " + backup.getPath());
+            } catch (IOException copyError) {
+                getLogger().severe("Could not back up invalid " + name + ": " + copyError.getMessage());
+            }
+            if (getResource(name) != null) {
+                if (!f.delete()) getLogger().warning("Could not replace invalid config file " + name);
+                saveResource(name, false);
+                try { yaml.load(f); return yaml; }
+                catch (IOException | InvalidConfigurationException reloadError) {
+                    getLogger().severe("Bundled default for " + name + " could not be loaded: " + reloadError.getMessage());
+                }
+            }
+            return new YamlConfiguration();
+        }
     }
 
     private void loadAllFiles() {
