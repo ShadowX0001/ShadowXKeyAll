@@ -1,0 +1,18 @@
+# Optional calendar schedules. Times use server local timezone and 24-hour HH:mm.
+enabled: false
+timezone: "server"
+daily:
+  enabled: false
+  time: "18:00"
+  keys: [vote]
+weekly:
+  enabled: false
+  day: SUNDAY
+  time: "18:00"
+  keys: [rare]
+monthly:
+  enabled: false
+  day: 1
+  time: "18:00"
+  keys: [rare]
+events: []

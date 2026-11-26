@@ -1,0 +1,27 @@
+title: "&8ShadowXKeyAll"
+size: 45
+filler:
+  enabled: true
+  material: BLACK_STAINED_GLASS_PANE
+  name: " "
+items:
+  overview:
+    slot: 4
+    material: NETHER_STAR
+    name: "&bKeyAll Overview"
+    lore:
+      - "&7Active key types: &f%key_count%"
+      - "&7Next distribution: &f%next%"
+  keys:
+    material: TRIPWIRE_HOOK
+    name: "&b%key_name%"
+    lore:
+      - "&7Key ID: &f%key_id%"
+      - "&7Amount: &f%amount%"
+      - "&7Next drop: &f%time%"
+  pending:
+    slot: 40
+    material: CHEST
+    name: "&aYour Pending Keys"
+    lore:
+      - "&7%pending_total% key(s) waiting"

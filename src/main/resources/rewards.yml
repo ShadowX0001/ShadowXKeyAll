@@ -1,0 +1,32 @@
+# Independent key definitions. Each key has its own timer and reward command.
+keys:
+  vote:
+    enabled: true
+    display-name: "&aVote Key"
+    interval-seconds: 3600
+    amount: 1
+    mode: ONLINE_AND_OFFLINE
+    commands:
+      - "crazycrates give virtual vote %amount% %player%"
+    permission: ""
+    minimum-playtime-seconds: 0
+    worlds-blacklist: []
+    first-join-bonus: 0
+    daily-bonus: 0
+    weekly-bonus: 0
+    monthly-bonus: 0
+  rare:
+    enabled: false
+    display-name: "&dRare Key"
+    interval-seconds: 7200
+    amount: 1
+    mode: ONLINE_AND_OFFLINE
+    commands:
+      - "crazycrates give virtual rare %amount% %player%"
+    permission: ""
+    minimum-playtime-seconds: 0
+    worlds-blacklist: []
+    first-join-bonus: 0
+    daily-bonus: 0
+    weekly-bonus: 0
+    monthly-bonus: 0
