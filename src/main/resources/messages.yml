@@ -1,6 +1,6 @@
-prefix: "&8[&bShadowXKeyAll&8] "
+"prefix: "&8[&3&lSHADOW&b&lX &8| &bKeyAll&8] &r"
 no-permission: "&cYou don't have permission."
-help: "&7/keyall [status|start|stop|pause|resume|reload|give|giveall|set|reset|history|stats|preview|settings|boost]"
+help: "&8&m----------------&r &b&lSHADOWX KEYALL &8&m----------------\n&b/keyall &7- Open timer menu\n&b/keyall status &7- View every key timer\n&b/keyall setinterval <key> <seconds> &7- Save timer interval\n&b/keyall timer <key> <seconds> &7- Change remaining time\n&b/keyall addkey <id> <seconds> [amount] &7- Add key\n&b/keyall setamount <key> <amount> &7- Set key amount\n&b/keyall setcommand <key> <command...> &7- Replace crate command\n&b/keyall addcommand <key> <command...> &7- Add crate command\n&b/keyall listcommands <key> &7- List crate commands\n&b/keyall give <player> <key> <amount> &7- Give keys\n&b/keyall giveall <key> [amount] &7- Give online players\n&b/keyall reload &7- Reload all files\n&8&m-----------------------------------------------"
 admin:
   reloaded: "&aAll configuration files reloaded successfully."
   started: "&aTimers started."
@@ -9,13 +9,13 @@ admin:
   resumed: "&aTimers resumed."
 countdown:
   actionbar: "&bNext key in &f%time%"
-  chat: "&e&lKEYALL &8» &fNext keys arrive in &b%time%&f!"
+  chat: "&8&m----------&r &b&lKEY DROP INCOMING &8&m----------\n&3✦ &fNext &b%key% &fkey arrives in &e&l%time%&f! &3✦"
 announcements:
-  warning: "&e&lKEYALL &8» &fThe next key drop is in &6%time%&f. Get ready!"
-  distributed: "&a&lKEYALL &8» &f%amount%x &b%key% &fkey(s) distributed! &7(Online: %online%, queued: %offline%)"
+  warning: "&8[&b&lKEYALL&8] &fPrepare yourself! &b%key% &fkey drops in &e&l%time%&f! &8» &3Get ready!"
+  distributed: "&8[&a&lKEY DROP&8] &fSuccessfully distributed &a&l%amount%x &b%key% &fkey(s)! &8(&aOnline: %online% &8| &eQueued: %offline%&8)"
 rewards:
-  received: "&a&lKEYS RECEIVED &8» &fYou received &b%amount%x %key% &fkey(s). Enjoy!"
-  pending: "&eYou have %amount% pending %key% key(s)."
+  received: "&8&m----------&r &a&lREWARD RECEIVED &8&m----------\n&fYou got &a&l%amount%x &b%key% &fkey(s)!\n&7Thanks for playing on the server! &8✦"
+  pending: "&8[&e&lPENDING REWARDS&8] &fYou have &e%amount%x &b%key% &fkey(s) waiting for you."
 errors:
   invalid-number: "&cInvalid number."
   player-not-found: "&cPlayer not found."
