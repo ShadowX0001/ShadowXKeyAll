@@ -5,6 +5,7 @@ keys:
     enabled: true
     display-name: "&aVote Key"
     interval-seconds: 3600
+    player-interval-seconds: 0 # 0 disables individual cooldowns
     amount: 1
     mode: ONLINE_AND_OFFLINE
     commands:

@@ -30,5 +30,7 @@ gui:
   permission: shadowxkeyall.use
 integrations:
   placeholderapi: true
+maintenance:
+  enabled: false
 anti-abuse:
   one-reward-per-cycle: true

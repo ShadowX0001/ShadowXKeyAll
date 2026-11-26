@@ -195,9 +195,9 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private String mode(String id) { return rewards.getString("keys." + id + ".mode", getConfig().getString("distribution.default-mode", "ONLINE_AND_OFFLINE")); }
 
     private void tick() {
-        runSchedules();
+        if (!getConfig().getBoolean("maintenance.enabled", false)) runSchedules();
         long now = System.currentTimeMillis();
-        if (timersRunning) {
+        if (timersRunning && !getConfig().getBoolean("maintenance.enabled", false)) {
             for (String id : new ArrayList<>(nextRuns.keySet())) {
                 long left = Math.max(0, (nextRuns.get(id) - now + 999) / 1000);
                 if (left > 0 && left <= 10 && sounds.getBoolean("countdown.enabled", true)
@@ -279,6 +279,8 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
 
     private boolean eligible(Player p, String id) {
+        long playerNext = playersData.getLong("player-timers." + p.getUniqueId() + "." + id, 0L);
+        if (playerNext > System.currentTimeMillis()) return false;
         String perm = rewards.getString("keys." + id + ".permission", "");
         if (!perm.isBlank() && !p.hasPermission(perm)) return false;
         if (getConfig().getBoolean("eligibility.require-not-afk", false)) {
@@ -301,6 +303,9 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             catch (RuntimeException ex) { success = false; getLogger().warning("Reward command failed for " + id + ": " + ex.getMessage()); }
         }
         if (success) {
+            long playerInterval = rewards.getLong("keys." + id + ".player-interval-seconds", 0L);
+            if (playerInterval > 0) playersData.set("player-timers." + player.getUniqueId() + "." + id,
+                    System.currentTimeMillis() + playerInterval * 1000L);
             player.sendMessage(color(msg("prefix") + msg("rewards.received").replace("%amount%", String.valueOf(count)).replace("%key%", displayName(id))));
             play(player, "reward");
             addHistory("GIVE player=" + player.getUniqueId() + " key=" + id + " amount=" + count);
@@ -309,6 +314,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
 
     private void deliverPending(Player player) {
+        if (getConfig().getBoolean("maintenance.enabled", false)) return;
         if (!getConfig().getBoolean("distribution.retry-pending-on-join", true)) return;
         Map<String, Integer> map = pending.get(player.getUniqueId());
         if (map == null || map.isEmpty()) return;
