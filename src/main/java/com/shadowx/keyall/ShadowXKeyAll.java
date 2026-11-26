@@ -3,7 +3,6 @@ package com.shadowx.keyall;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.boss.*;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
@@ -20,12 +19,9 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private long nextRun;
     private long pausedRemaining = -1;
     private boolean running;
-    private final Map<UUID, Long> lastSeen = new HashMap<>();
     private final Set<UUID> afk = new HashSet<>();
-    private final Map<UUID, Long> activity = new HashMap<>();
+    private final Map<UUID, Long> activity = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<UUID, Integer> pending = new HashMap<>();
-    private final Map<UUID, Long> playtime = new HashMap<>();
-    private final Map<UUID, Long> joinedAt = new HashMap<>();
     private final Map<UUID, BossBar> bars = new HashMap<>();
     private BukkitTask ticker;
     private long lastSave;
@@ -33,8 +29,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     @Override public void onEnable() {
         saveDefaultConfig();
         loadData();
-        running = getConfig().getBoolean("timer.start-on-enable", true);
-        if (nextRun <= 0) nextRun = System.currentTimeMillis() + intervalMillis();
+        if (nextRun <= 0) { nextRun = System.currentTimeMillis() + intervalMillis(); running = getConfig().getBoolean("timer.start-on-enable", true); }
         if (getCommand("keyall") != null) { getCommand("keyall").setExecutor(this); getCommand("keyall").setTabCompleter(this); }
         Bukkit.getPluginManager().registerEvents(this, this);
         ticker = Bukkit.getScheduler().runTaskTimer(this, this::tick, 20L, 20L);
@@ -114,7 +109,10 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     @EventHandler public void onJoin(PlayerJoinEvent e) {
         Player p=e.getPlayer(); activity.put(p.getUniqueId(),System.currentTimeMillis());
         int owed=pending.getOrDefault(p.getUniqueId(),0);
-        if(owed>0) { give(p,owed,getConfig().getString("distribution.key-id","vote")); pending.remove(p.getUniqueId()); saveData(); }
+        String required=getConfig().getString("eligibility.permission", "");
+        boolean hasRequired=required.isBlank() || p.hasPermission(required);
+        boolean enoughPlaytime=p.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE)/20L >= getConfig().getLong("eligibility.minimum-playtime-seconds",0);
+        if(owed>0 && hasRequired && enoughPlaytime) { give(p,owed,getConfig().getString("distribution.key-id","vote")); pending.remove(p.getUniqueId()); saveData(); }
         updateBar(p);
     }
     @EventHandler public void onQuit(PlayerQuitEvent e) { BossBar b=bars.remove(e.getPlayer().getUniqueId()); if(b!=null)b.removeAll(); }
@@ -144,6 +142,6 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private void broadcast(String m,Map<String,String> vars){if(m==null)return;for(var e:vars.entrySet())m=m.replace(e.getKey(),e.getValue());Bukkit.broadcastMessage(color(m));}
     private String color(String s){return ChatColor.translateAlternateColorCodes('&',s==null?"":s);}
     private String format(long ms){long sec=Math.max(0,ms/1000);return String.format("%02d:%02d:%02d",sec/3600,(sec%3600)/60,sec%60);}
-    private void loadData(){if(!getDataFolder().exists())getDataFolder().mkdirs();org.bukkit.configuration.file.YamlConfiguration d=org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new java.io.File(getDataFolder(),"data.yml"));nextRun=d.getLong("next-run",0);running=d.getBoolean("running",true);pausedRemaining=d.getLong("paused-remaining",-1);for(String k:d.getKeys(false))if(k.startsWith("pending."))try{pending.put(UUID.fromString(k.substring(8)),d.getInt(k));}catch(IllegalArgumentException ignored){}}
+    private void loadData(){if(!getDataFolder().exists())getDataFolder().mkdirs();org.bukkit.configuration.file.YamlConfiguration d=org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new java.io.File(getDataFolder(),"data.yml"));nextRun=d.getLong("next-run",0);running=d.getBoolean("running",getConfig().getBoolean("timer.start-on-enable",true));pausedRemaining=d.getLong("paused-remaining",-1);for(String k:d.getKeys(false))if(k.startsWith("pending."))try{pending.put(UUID.fromString(k.substring(8)),d.getInt(k));}catch(IllegalArgumentException ignored){}}
     private void saveData(){org.bukkit.configuration.file.YamlConfiguration d=new org.bukkit.configuration.file.YamlConfiguration();d.set("next-run",nextRun);d.set("running",running);d.set("paused-remaining",pausedRemaining);pending.forEach((id,n)->d.set("pending."+id,n));try{d.save(new java.io.File(getDataFolder(),"data.yml"));}catch(java.io.IOException ex){getLogger().severe("Could not save data.yml: "+ex.getMessage());}}
 }
