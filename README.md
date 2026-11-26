@@ -14,6 +14,7 @@ Multi-key timed crate distribution for Paper servers. Built with Java 21 and Pap
 - Optional lucky extra keys, daily login streak rewards and per-player cooldowns.
 - Admin settings GUI for BossBar, ActionBar, chat, scoreboard and maintenance toggles.
 - Optional asynchronous Discord webhook notifications.
+- Optional NuVotifier/Votifier vote-event rewards for configured key IDs.
 - BossBar, ActionBar, chat countdown and configurable sidebar countdown.
 - Configurable warning chat, title/subtitle and sounds.
 - Inventory overview GUI and pending reward count.
@@ -72,6 +73,9 @@ Tokens: `%player%`, `%uuid%`, `%key%`, `%amount%`.
 - `/keyall history`
 
 Admin permission: `shadowxkeyall.admin` (default OP). GUI permission: `shadowxkeyall.use` (default true).
+
+## Vote rewards
+If NuVotifier/Votifier is installed, set `integrations.voting.enabled: true` in `config.yml`, then list key IDs under `integrations.voting.keys`. Vote rewards for known players are granted immediately when eligible or queued for later delivery.
 
 ## PlaceholderAPI
 When installed, these placeholders are registered:
