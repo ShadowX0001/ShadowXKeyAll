@@ -1,0 +1,14 @@
+# All player-facing text lives here. Use & color codes and %placeholders%.
+prefix: "&8[&bShadowXKeyAll&8] "
+no-permission: "&cYou don't have permission."
+help: "&7/keyall <status|start|stop|pause|resume|reload|set|give|giveall|preview|pending|clearpending>"
+admin:
+  reloaded: "&aAll configuration files reloaded successfully."
+countdown:
+  actionbar: "&bNext key in &f%time%"
+  chat: "&e&lKEYALL &8» &fNext crate keys arrive in &b%time%&f!"
+announcements:
+  warning: "&e&lKEYALL &8» &fThe next key drop is in &6%time%&f. Get ready!"
+  distributed: "&a&lKEYALL &8» &f%amount%x &b%key% &fkey(s) distributed! &7(Online: %online%, queued: %offline%)"
+rewards:
+  received: "&a&lKEYS RECEIVED &8» &fYou received &b%amount%x %key% &fkey(s). Enjoy!"
