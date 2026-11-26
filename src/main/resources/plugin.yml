@@ -6,10 +6,10 @@ authors: [ShadowX0001]
 description: Configurable timed crate-key distribution with persistent offline rewards.
 softdepend: [PlaceholderAPI, ExcellentCrates, CrazyCrates, PhoenixCrates]
 commands:
-  keyall:
-    description: ShadowXKeyAll controls and timer GUI
-    usage: /keyall [status|start|stop|pause|resume|reload|set|give|giveall|preview|pending|clearpending]
-    aliases: [ska]
+  shadowxkeyall:
+    description: ShadowXKeyAll main command and administration
+    usage: /shadowxkeyall [status|start|stop|pause|resume|reload|set|give|giveall|preview|pending|clearpending]
+    aliases: [keyall, ska]
 permissions:
   shadowxkeyall.admin:
     description: Access all ShadowXKeyAll administration commands
