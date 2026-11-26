@@ -58,7 +58,15 @@ Default CrazyCrates command example:
 commands:
   - "crazycrates give virtual vote %amount% %player%"
 ```
-Tokens: `%player%`, `%uuid%`, `%key%`, `%amount%`.
+Tokens: `%player%`, `%uuid%`, `%key%`, `%key_name%`, `%amount%`.
+
+You can also set a global fallback command in `config.yml` under `key-commands.default` (a list) or `key-commands.default-command` (one command). A key-specific `rewards.yml` `keys.<id>.commands` list always takes priority. If both are empty, the plugin logs a clear warning and keeps the reward pending.
+
+In-game command management:
+- `/keyall setcommand <id> <command...>` replaces the key command list.
+- `/keyall addcommand <id> <command...>` appends a command.
+- `/keyall listcommands <id>` shows effective commands, including config fallback.
+- `/keyall clearcommands <id>` clears key-specific commands so the global config fallback is used.
 
 ## Runtime timer and key management commands
 
@@ -71,7 +79,8 @@ All commands below are available from both `/shadowxkeyall` and its `/keyall` / 
 - `/keyall setamount <keyId> <amount>` — changes and saves the amount distributed each cycle.
 - `/keyall setcommand <keyId> <console command...>` — replaces the key's reward command list.
 - `/keyall addcommand <keyId> <console command...>` — appends another console reward command.
-- `/keyall listcommands <keyId>` — displays the configured commands.
+- `/keyall listcommands <keyId>` — displays effective commands.
+- `/keyall clearcommands <keyId>` — clears key-specific commands and enables the global config fallback.
 
 Reward commands support `%player%`, `%uuid%`, `%key%` and `%amount%`. Use a crate plugin's console grant command in `rewards.yml`; for example, `crazycrates give virtual vote %amount% %player%`. After editing files manually, run `/keyall reload`.
 
