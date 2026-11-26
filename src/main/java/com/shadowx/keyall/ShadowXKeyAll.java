@@ -180,7 +180,18 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private Set<String> keyIds() { return new LinkedHashSet<>(nextRuns.keySet()); }
     private String displayName(String id) { return color(rewards.getString("keys." + id + ".display-name", id)); }
     private int amount(String id) { return Math.max(1, rewards.getInt("keys." + id + ".amount", 1)); }
-    private long interval(String id) { return Math.max(1, rewards.getLong("keys." + id + ".interval-seconds", 3600)) * 1000L; }
+    private long interval(String id) {
+        String base = "keys." + id + ".";
+        long seconds = Math.max(1, rewards.getLong(base + "interval-seconds", 3600));
+        if (rewards.getBoolean(base + "dynamic-interval.enabled", false)) {
+            long configuredBase = Math.max(1, rewards.getLong(base + "dynamic-interval.base-seconds", seconds));
+            long perPlayer = rewards.getLong(base + "dynamic-interval.seconds-per-online-player", 0);
+            long min = Math.max(1, rewards.getLong(base + "dynamic-interval.min-seconds", 60));
+            long max = Math.max(min, rewards.getLong(base + "dynamic-interval.max-seconds", configuredBase));
+            seconds = Math.max(min, Math.min(max, configuredBase + perPlayer * Bukkit.getOnlinePlayers().size()));
+        }
+        return seconds * 1000L;
+    }
     private String mode(String id) { return rewards.getString("keys." + id + ".mode", getConfig().getString("distribution.default-mode", "ONLINE_AND_OFFLINE")); }
 
     private void tick() {
@@ -237,8 +248,12 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         String distributionMode = mode(id).toUpperCase(Locale.ROOT);
         if (!distributionMode.equals("OFFLINE_ONLY")) for (Player p : Bukkit.getOnlinePlayers()) {
             if (!eligible(p, id)) continue;
-            if (give(p, id, count)) delivered++;
-            else queue(p.getUniqueId(), id, count);
+            int actualCount = count;
+            double luckyChance = rewards.getDouble("keys." + id + ".lucky-chance-percent", 0.0);
+            if (luckyChance > 0 && java.util.concurrent.ThreadLocalRandom.current().nextDouble(100.0) < luckyChance)
+                actualCount += Math.max(1, rewards.getInt("keys." + id + ".lucky-extra-amount", 1));
+            if (give(p, id, actualCount)) delivered++;
+            else queue(p.getUniqueId(), id, actualCount);
         }
         if (!distributionMode.equals("ONLINE_ONLY")) {
             for (org.bukkit.OfflinePlayer off : Bukkit.getOfflinePlayers()) {
@@ -520,6 +535,19 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         if (periodKey.equals(playersData.getString(path, ""))) return;
         grantBonus(player, id, count, period);
         playersData.set(path, periodKey);
+        if (period.equals("daily")) {
+            String streakPath = "players." + player.getUniqueId() + ".streak." + id;
+            String previous = playersData.getString(streakPath + ".last-day", "");
+            LocalDate current = LocalDate.parse(periodKey);
+            int streak = previous.equals(current.minusDays(1).toString())
+                    ? playersData.getInt(streakPath + ".days", 0) + 1 : 1;
+            playersData.set(streakPath + ".days", streak);
+            playersData.set(streakPath + ".last-day", periodKey);
+            int every = rewards.getInt("keys." + id + ".streak-every-days", 0);
+            int streakBonus = rewards.getInt("keys." + id + ".streak-bonus", 0);
+            if (every > 0 && streakBonus > 0 && streak % every == 0)
+                grantBonus(player, id, streakBonus, "streak-" + streak);
+        }
     }
 
     private void grantBonus(Player player, String id, int count, String reason) {

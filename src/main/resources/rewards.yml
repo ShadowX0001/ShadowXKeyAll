@@ -16,6 +16,16 @@ keys:
     daily-bonus: 0
     weekly-bonus: 0
     monthly-bonus: 0
+    streak-every-days: 7
+    streak-bonus: 1
+    lucky-chance-percent: 0.0
+    lucky-extra-amount: 1
+    dynamic-interval:
+      enabled: false
+      base-seconds: 3600
+      seconds-per-online-player: 0
+      min-seconds: 600
+      max-seconds: 3600
   rare:
     enabled: false
     display-name: "&dRare Key"
