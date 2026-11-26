@@ -39,6 +39,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private BukkitTask ticker;
     private boolean timersRunning;
     private long lastSave;
+    private long lastPendingRetry;
 
     @Override public void onEnable() {
         saveDefaultConfig();
@@ -222,6 +223,13 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                         broadcast(msg("countdown.chat").replace("%time%", format(left * 1000L)).replace("%key%", displayName(id)));
                 }
             }
+        }
+        if (now - lastPendingRetry >= 10000L) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                Map<String, Integer> queued = pending.get(player.getUniqueId());
+                if (queued != null && !queued.isEmpty()) deliverPending(player);
+            }
+            lastPendingRetry = now;
         }
         if (now - lastSave >= Math.max(10, getConfig().getLong("timer.save-interval-seconds", 30)) * 1000L) {
             saveData(); lastSave = now;
@@ -434,6 +442,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         try {
             switch (sub) {
                 case "reload" -> {
+                    saveData();
                     reloadConfig(); loadAllFiles();
                     for (String id : new ArrayList<>(nextRuns.keySet())) if (!rewards.getBoolean("keys." + id + ".enabled", true)) nextRuns.remove(id);
                     initializeTimers(); refreshBars(); send(sender, msg("admin.reloaded"));
@@ -442,6 +451,13 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                 case "stop" -> { timersRunning = false; pausedRemaining.clear(); send(sender, msg("admin.stopped")); }
                 case "pause" -> { if (timersRunning) for (String id : keyIds()) pausedRemaining.put(id, Math.max(0, nextRuns.get(id) - System.currentTimeMillis())); timersRunning = false; send(sender, msg("admin.paused")); }
                 case "resume" -> { timersRunning = true; pausedRemaining.forEach((id, left) -> nextRuns.put(id, System.currentTimeMillis() + left)); pausedRemaining.clear(); send(sender, msg("admin.resumed")); }
+                case "reset" -> {
+                    if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall reset <keyId>");
+                    requireKey(args[1]);
+                    nextRuns.put(args[1], System.currentTimeMillis() + interval(args[1]));
+                    countdownMarks.removeIf(mark -> mark.startsWith(args[1] + ":") || mark.contains(":" + args[1] + ":"));
+                    send(sender, "&aTimer reset for " + args[1] + ".");
+                }
                 case "set" -> {
                     if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall set <keyId> <seconds>");
                     requireKey(args[1]); nextRuns.put(args[1], System.currentTimeMillis() + Math.max(1, Long.parseLong(args[2])) * 1000L);
@@ -509,8 +525,8 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         return null;
     }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "give", "giveall", "pending", "clearpending", "history", "preview").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
-        if (args.length == 2 && List.of("set", "giveall").contains(args[0].toLowerCase(Locale.ROOT))) return keyIds().stream().filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
+        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "reset", "give", "giveall", "pending", "clearpending", "history", "preview").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
+        if (args.length == 2 && List.of("set", "reset", "giveall").contains(args[0].toLowerCase(Locale.ROOT))) return keyIds().stream().filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("give", "pending", "clearpending").contains(args[0].toLowerCase(Locale.ROOT))) return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) return keyIds().stream().filter(s -> s.startsWith(args[2].toLowerCase(Locale.ROOT))).toList();
         return Collections.emptyList();
