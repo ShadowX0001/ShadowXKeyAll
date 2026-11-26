@@ -1,0 +1,11 @@
+# Bukkit Sound enum names. Set enabled false to disable a sound.
+countdown:
+  enabled: true
+  sound: BLOCK_NOTE_BLOCK_PLING
+  volume: 0.8
+  pitch: 1.4
+reward:
+  enabled: true
+  sound: ENTITY_PLAYER_LEVELUP
+  volume: 1.0
+  pitch: 1.0
