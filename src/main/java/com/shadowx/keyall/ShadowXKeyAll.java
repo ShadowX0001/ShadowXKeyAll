@@ -213,7 +213,8 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             if (getConfig().getBoolean("countdown.actionbar.enabled", false)) {
                 String nearest = nearestTimer();
                 if (nearest != null) player.sendActionBar(color(getConfig().getString("countdown.actionbar.message", "&bNext key in %time%")
-                        .replace("%time%", format(Math.max(0, nextRuns.get(nearest) - now)))));
+                        .replace("%time%", format(Math.max(0, nextRuns.get(nearest) - now)))
+                        .replace("%key%", displayName(nearest))));
             }
             if (getConfig().getBoolean("countdown.chat.enabled", false)) {
                 for (String id : nextRuns.keySet()) {
@@ -246,6 +247,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         if (announcements.getBoolean("channels.title", true)) {
             String title = announcements.getString("messages.title", "%key%").replace("%key%", displayName(id));
             String subtitle = announcements.getString("messages.subtitle", "");
+            subtitle = subtitle.replace("%time%", format(left * 1000L));
             for (Player p : Bukkit.getOnlinePlayers()) p.sendTitle(color(title), color(subtitle), 5, 35, 10);
         }
         if (announcements.getBoolean("channels.sound", true)) playAll("announcement");
@@ -277,7 +279,6 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         addHistory("DISTRIBUTE key=" + id + " amount=" + count + " online=" + delivered + " queued=" + queued);
         nextRuns.put(id, System.currentTimeMillis() + interval(id));
         countdownMarks.removeIf(mark -> mark.startsWith(id + ":") || mark.startsWith("chat:" + id + ":") || mark.startsWith("announce:" + id + ":"));
-        playAll("reward");
         saveData();
         getLogger().info("Key cycle " + id + ": delivered=" + delivered + ", queued=" + queued);
     }
@@ -637,7 +638,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         String time = id == null ? "--:--" : format(Math.max(0, nextRuns.get(id) - System.currentTimeMillis()));
         String keyName = id == null ? "No active key" : displayName(id);
         String[] lines = {color("&7Next: &f" + keyName), color("&7Time: &b" + time), color("&8ShadowXKeyAll")};
-        board.getEntries().forEach(board::resetScores);
+        new HashSet<>(board.getEntries()).forEach(board::resetScores);
         for (int i = 0; i < lines.length; i++) objective.getScore(lines[i]).setScore(lines.length - i);
         player.setScoreboard(board);
     }
