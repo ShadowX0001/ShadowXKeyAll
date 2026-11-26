@@ -438,7 +438,47 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private Material material(String name, Material fallback) { Material m = Material.matchMaterial(name); return m == null ? fallback : m; }
 
     @EventHandler public void onInventoryClick(InventoryClickEvent e) {
-        if (e.getView().getTitle().equals(color(gui.getString("title", "&8ShadowXKeyAll")))) e.setCancelled(true);
+        String title = e.getView().getTitle();
+        if (title.equals(color(gui.getString("title", "&8ShadowXKeyAll")))) {
+            e.setCancelled(true);
+            return;
+        }
+        if (title.equals(color("&8ShadowXKeyAll Admin Settings"))) {
+            e.setCancelled(true);
+            if (!(e.getWhoClicked() instanceof Player player) || e.getRawSlot() >= e.getView().getTopInventory().getSize()) return;
+            switch (e.getRawSlot()) {
+                case 10 -> toggleSetting(player, "countdown.bossbar.enabled");
+                case 12 -> toggleSetting(player, "countdown.actionbar.enabled");
+                case 14 -> toggleSetting(player, "countdown.chat.enabled");
+                case 16 -> toggleSetting(player, "countdown.scoreboard.enabled");
+                case 22 -> toggleSetting(player, "maintenance.enabled");
+                default -> { return; }
+            }
+            openAdminGui(player);
+        }
+    }
+
+    private void toggleSetting(Player player, String path) {
+        boolean value = !getConfig().getBoolean(path, false);
+        getConfig().set(path, value);
+        saveConfig();
+        refreshBars();
+        send(player, "&e" + path + " &7set to " + (value ? "&aON" : "&cOFF"));
+    }
+
+    private void openAdminGui(Player player) {
+        Inventory inv = Bukkit.createInventory(null, 27, color("&8ShadowXKeyAll Admin Settings"));
+        Material[] mats = {Material.DRAGON_BREATH, Material.FEATHER, Material.PAPER, Material.OAK_SIGN, Material.REDSTONE_BLOCK};
+        String[] paths = {"countdown.bossbar.enabled", "countdown.actionbar.enabled", "countdown.chat.enabled",
+                "countdown.scoreboard.enabled", "maintenance.enabled"};
+        String[] names = {"BossBar", "ActionBar", "Chat Countdown", "Scoreboard", "Maintenance Mode"};
+        int[] slots = {10, 12, 14, 16, 22};
+        for (int i = 0; i < slots.length; i++) {
+            boolean enabled = getConfig().getBoolean(paths[i], false);
+            inv.setItem(slots[i], item(mats[i], (enabled ? "&a&lON " : "&c&lOFF ") + names[i],
+                    List.of(color("&7Click to toggle"), color("&8" + paths[i]))));
+        }
+        player.openInventory(inv);
     }
     @EventHandler public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
@@ -478,6 +518,10 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         if (!sender.hasPermission("shadowxkeyall.admin")) { send(sender, msg("no-permission")); return true; }
         try {
             switch (sub) {
+                case "settings" -> {
+                    if (sender instanceof Player p) openAdminGui(p);
+                    else send(sender, "&cThis command can only be used in-game.");
+                }
                 case "reload" -> {
                     saveData();
                     reloadConfig(); loadAllFiles();
@@ -562,7 +606,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         return null;
     }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "reset", "give", "giveall", "pending", "clearpending", "history", "preview").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
+        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "reset", "give", "giveall", "pending", "clearpending", "history", "preview", "settings").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("set", "reset", "giveall").contains(args[0].toLowerCase(Locale.ROOT))) return keyIds().stream().filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("give", "pending", "clearpending").contains(args[0].toLowerCase(Locale.ROOT))) return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) return keyIds().stream().filter(s -> s.startsWith(args[2].toLowerCase(Locale.ROOT))).toList();

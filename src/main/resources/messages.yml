@@ -1,6 +1,6 @@
 prefix: "&8[&bShadowXKeyAll&8] "
 no-permission: "&cYou don't have permission."
-help: "&7/keyall [status|start|stop|pause|resume|reload|give|giveall|set|reset|history|preview]"
+help: "&7/keyall [status|start|stop|pause|resume|reload|give|giveall|set|reset|history|preview|settings]"
 admin:
   reloaded: "&aAll configuration files reloaded successfully."
   started: "&aTimers started."
