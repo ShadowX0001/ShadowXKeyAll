@@ -437,10 +437,10 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             Material filler = material(gui.getString("filler.material", "BLACK_STAINED_GLASS_PANE"), Material.BLACK_STAINED_GLASS_PANE);
             for (int i = 0; i < size; i++) inv.setItem(i, item(filler, gui.getString("filler.name", " "), List.of()));
         }
-        int overviewSlot = gui.getInt("items.overview.slot", 4);
-        int scheduleSlot = gui.getInt("items.schedule.slot", 31);
-        int historySlot = gui.getInt("items.history.slot", 32);
-        int pendingSlot = gui.getInt("items.pending.slot", size - 5);
+        int overviewSlot = Math.max(0, Math.min(size - 1, gui.getInt("items.overview.slot", 4)));
+        int scheduleSlot = Math.max(0, Math.min(size - 1, gui.getInt("items.schedule.slot", Math.max(0, size - 14))));
+        int historySlot = Math.max(0, Math.min(size - 1, gui.getInt("items.history.slot", Math.max(0, size - 13))));
+        int pendingSlot = Math.max(0, Math.min(size - 1, gui.getInt("items.pending.slot", size - 5)));
         Set<Integer> reservedSlots = new HashSet<>(Arrays.asList(overviewSlot, scheduleSlot, historySlot, pendingSlot));
         String nearestId = nearestTimer();
         String nextText = nearestId == null ? "--:--" : format(Math.max(0, nextRuns.get(nearestId) - System.currentTimeMillis()));
