@@ -1,15 +1,11 @@
-# ShadowXKeyAll configuration
-# Durations are in seconds. Backup config.yml before editing.
+# ShadowXKeyAll - all durations are seconds.
 timer:
   interval-seconds: 3600
   start-on-enable: true
 distribution:
-  # ONLINE_ONLY or ONLINE_AND_OFFLINE
   mode: ONLINE_AND_OFFLINE
   amount: 1
   key-id: vote
-  # Console commands; supported tokens: %player%, %uuid%, %key%, %amount%
-  # Adjust this command to match your crate plugin.
   commands:
     - "crazycrates give virtual %key% %amount% %player%"
 eligibility:
@@ -20,20 +16,20 @@ eligibility:
   worlds-blacklist: []
 countdown:
   bossbar: true
+  bossbar-title: "&bShadowXKeyAll &8» &f%time%"
+  bossbar-color: BLUE
+  bossbar-style: SOLID
   actionbar: false
+  chat-enabled: false
+  chat-seconds: [60, 30, 10, 5, 4, 3, 2, 1]
+  sounds-enabled: true
 announcements:
   enabled: true
   before-seconds: [300, 60, 10]
-  warning: "&eKeyAll starts in &6%time%&e!"
-  distributed: "&aShadowXKeyAll: &f%amount% %key% key(s) distributed. &7(Online: %online%, offline queued: %offline%)"
-messages:
-  prefix: "&8[&bShadowXKeyAll&8] "
-  no-permission: "&cYou don't have permission."
-  help: "&7/keyall <status|start|stop|pause|resume|reload|set|give|giveall|preview|pending|clearpending>"
+storage:
+  save-interval-seconds: 30
 gui:
   title: "&8ShadowXKeyAll"
   size: 27
   info-slot: 13
   material: TRIPWIRE_HOOK
-storage:
-  save-interval-seconds: 30
