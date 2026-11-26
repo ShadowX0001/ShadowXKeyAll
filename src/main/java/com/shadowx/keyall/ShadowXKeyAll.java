@@ -361,25 +361,54 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         return !rewards.getStringList("keys." + id + ".worlds-blacklist").contains(p.getWorld().getName());
     }
 
-    private boolean give(Player player, String id, int count) {
+    private List<String> configuredRewardCommands(String id) {
         List<String> commands = rewards.getStringList("keys." + id + ".commands");
-        if (commands.isEmpty()) return false;
-        boolean success = true;
+        if (!commands.isEmpty()) return commands;
+        String single = rewards.getString("keys." + id + ".command", "").trim();
+        if (!single.isEmpty()) return List.of(single);
+        commands = getConfig().getStringList("key-commands.default");
+        if (!commands.isEmpty()) return commands;
+        String global = getConfig().getString("key-commands.default-command", "").trim();
+        return global.isEmpty() ? Collections.emptyList() : List.of(global);
+    }
+
+    private boolean give(Player player, String id, int count) {
+        List<String> commands = configuredRewardCommands(id);
+        if (commands.isEmpty()) {
+            getLogger().warning("No reward command configured for key '" + id + "'. Set rewards.yml keys." + id
+                    + ".commands or config.yml key-commands.default.");
+            return false;
+        }
+        boolean dispatched = false;
         for (String raw : commands) {
-            String command = raw.replace("%player%", player.getName()).replace("%uuid%", player.getUniqueId().toString())
-                    .replace("%key%", id).replace("%amount%", String.valueOf(count));
-            try { success &= Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command); }
-            catch (RuntimeException ex) { success = false; getLogger().warning("Reward command failed for " + id + ": " + ex.getMessage()); }
+            if (raw == null || raw.isBlank()) continue;
+            String command = raw.trim();
+            if (command.startsWith("/")) command = command.substring(1);
+            command = command.replace("%player%", player.getName())
+                    .replace("%uuid%", player.getUniqueId().toString())
+                    .replace("%key%", id)
+                    .replace("%key_name%", ChatColor.stripColor(displayName(id)))
+                    .replace("%amount%", String.valueOf(count));
+            try {
+                // Bukkit's dispatch return value is command-specific (some successful commands return false
+                // after printing usage), so do not interpret false as proof that the reward was not run.
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                dispatched = true;
+            } catch (RuntimeException ex) {
+                getLogger().severe("Could not dispatch reward command for key '" + id + "': " + command
+                        + " (" + ex.getClass().getSimpleName() + ": " + ex.getMessage() + ")");
+                return false;
+            }
         }
-        if (success) {
-            long playerInterval = rewards.getLong("keys." + id + ".player-interval-seconds", 0L);
-            if (playerInterval > 0) playersData.set("player-timers." + player.getUniqueId() + "." + id,
-                    System.currentTimeMillis() + playerInterval * 1000L);
-            player.sendMessage(color(msg("prefix") + msg("rewards.received").replace("%amount%", String.valueOf(count)).replace("%key%", displayName(id))));
-            play(player, "reward");
-            addHistory("GIVE player=" + player.getUniqueId() + " key=" + id + " amount=" + count);
-        }
-        return success;
+        if (!dispatched) return false;
+        long playerInterval = rewards.getLong("keys." + id + ".player-interval-seconds", 0L);
+        if (playerInterval > 0) playersData.set("player-timers." + player.getUniqueId() + "." + id,
+                System.currentTimeMillis() + playerInterval * 1000L);
+        player.sendMessage(color(msg("prefix") + msg("rewards.received")
+                .replace("%amount%", String.valueOf(count)).replace("%key%", displayName(id))));
+        play(player, "reward");
+        addHistory("GIVE player=" + player.getUniqueId() + " key=" + id + " amount=" + count);
+        return true;
     }
 
     private void deliverPending(Player player) {
@@ -659,9 +688,20 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                 case "listcommands" -> {
                     if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall listcommands <keyId>");
                     requireKey(args[1]);
-                    List<String> commands = rewards.getStringList("keys." + args[1] + ".commands");
-                    if (commands.isEmpty()) send(sender, "&cNo reward commands configured for " + args[1] + ".");
-                    else for (int i = 0; i < commands.size(); i++) send(sender, "&b" + (i + 1) + ". &f" + commands.get(i));
+                    List<String> commands = configuredRewardCommands(args[1]);
+                    if (commands.isEmpty()) send(sender, "&cNo reward commands configured for " + args[1] + ". Set them in rewards.yml or config.yml.");
+                    else {
+                        send(sender, "&eEffective reward commands for &b" + args[1] + "&e:");
+                        for (int i = 0; i < commands.size(); i++) send(sender, "&b" + (i + 1) + ". &f" + commands.get(i));
+                    }
+                }
+                case "clearcommands" -> {
+                    if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall clearcommands <keyId>");
+                    requireKey(args[1]);
+                    rewards.set("keys." + args[1] + ".commands", new ArrayList<String>());
+                    rewards.set("keys." + args[1] + ".command", null);
+                    saveRewards();
+                    send(sender, "&aCleared commands for &b" + args[1] + "&a. Global config.yml defaults will now be used.");
                 }
                 case "addkey" -> {
                     if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall addkey <keyId> <interval-seconds> [amount]");
@@ -791,7 +831,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         return null;
     }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "setinterval", "timer", "setamount", "setcommand", "addcommand", "listcommands", "addkey", "removekey", "reset", "give", "giveall", "pending", "clearpending", "history", "stats", "preview", "settings", "boost").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
+        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "setinterval", "timer", "setamount", "setcommand", "addcommand", "listcommands", "clearcommands", "addkey", "removekey", "reset", "give", "giveall", "pending", "clearpending", "history", "stats", "preview", "settings", "boost").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("set", "setinterval", "timer", "setamount", "setcommand", "addcommand", "listcommands", "reset", "giveall", "removekey").contains(args[0].toLowerCase(Locale.ROOT))) return keyIds().stream().filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("give", "pending", "clearpending").contains(args[0].toLowerCase(Locale.ROOT))) return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) return keyIds().stream().filter(s -> s.startsWith(args[2].toLowerCase(Locale.ROOT))).toList();
