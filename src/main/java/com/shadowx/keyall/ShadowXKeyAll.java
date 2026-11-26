@@ -551,10 +551,17 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                 }
                 case "give" -> {
                     if (args.length < 4) throw new IllegalArgumentException("Usage: /keyall give <player> <keyId> <amount>");
-                    Player target = Bukkit.getPlayerExact(args[1]); if (target == null) throw new IllegalArgumentException("Player must be online.");
                     requireKey(args[2]); int n = Math.max(1, Integer.parseInt(args[3]));
-                    if (!give(target, args[2], n)) throw new IllegalStateException("Reward command failed; check rewards.yml.");
-                    send(sender, "&aReward processed.");
+                    Player target = Bukkit.getPlayerExact(args[1]);
+                    if (target != null) {
+                        if (!give(target, args[2], n)) throw new IllegalStateException("Reward command failed; check rewards.yml.");
+                        send(sender, "&aReward processed for online player.");
+                    } else {
+                        org.bukkit.OfflinePlayer offline = Bukkit.getOfflinePlayer(args[1]);
+                        queue(offline.getUniqueId(), args[2], n);
+                        saveData();
+                        send(sender, "&aQueued " + n + " " + args[2] + " key(s) for " + args[1] + ".");
+                    }
                 }
                 case "giveall" -> {
                     if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall giveall <keyId> [amount]");
