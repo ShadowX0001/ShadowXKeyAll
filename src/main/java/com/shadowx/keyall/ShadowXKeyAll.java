@@ -438,6 +438,10 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             for (int i = 0; i < size; i++) inv.setItem(i, item(filler, gui.getString("filler.name", " "), List.of()));
         }
         int overviewSlot = gui.getInt("items.overview.slot", 4);
+        int scheduleSlot = gui.getInt("items.schedule.slot", 31);
+        int historySlot = gui.getInt("items.history.slot", 32);
+        int pendingSlot = gui.getInt("items.pending.slot", size - 5);
+        Set<Integer> reservedSlots = new HashSet<>(Arrays.asList(overviewSlot, scheduleSlot, historySlot, pendingSlot));
         String nearestId = nearestTimer();
         String nextText = nearestId == null ? "--:--" : format(Math.max(0, nextRuns.get(nearestId) - System.currentTimeMillis()));
         List<String> overviewLore = new ArrayList<>();
@@ -450,7 +454,8 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                         gui.getString("items.overview.name", "&bKeyAll Overview"), overviewLore));
         int slot = 10;
         for (String id : keyIds()) {
-            if (slot >= size - 1) break;
+            while (slot < size && reservedSlots.contains(slot)) slot++;
+            if (slot >= size) break;
             String name = gui.getString("items.keys.name", "&b%key_name%").replace("%key_name%", displayName(id)).replace("%key_id%", id);
             List<String> lore = gui.getStringList("items.keys.lore");
             List<String> lines = new ArrayList<>();
@@ -458,7 +463,6 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                     .replace("%amount%", String.valueOf(amount(id))).replace("%time%", format(Math.max(0, nextRuns.get(id) - System.currentTimeMillis())))));
             inv.setItem(slot++, item(material(gui.getString("items.keys.material", "TRIPWIRE_HOOK"), Material.TRIPWIRE_HOOK), name, lines));
         }
-        int scheduleSlot = gui.getInt("items.schedule.slot", 31);
         List<String> scheduleLore = new ArrayList<>();
         scheduleLore.add(color("&7Daily: &f" + (schedules.getBoolean("daily.enabled", false) ? schedules.getString("daily.time", "18:00") : "OFF")));
         scheduleLore.add(color("&7Weekly: &f" + (schedules.getBoolean("weekly.enabled", false) ? schedules.getString("weekly.day", "SUNDAY") + " " + schedules.getString("weekly.time", "18:00") : "OFF")));
@@ -466,14 +470,12 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         inv.setItem(Math.max(0, Math.min(size - 1, scheduleSlot)),
                 item(material(gui.getString("items.schedule.material", "CLOCK"), Material.CLOCK),
                         gui.getString("items.schedule.name", "&eSchedules"), scheduleLore));
-        int historySlot = gui.getInt("items.history.slot", 32);
         String latestHistory = history.isEmpty() ? "No entries yet" : history.get(history.size() - 1);
         List<String> historyLore = List.of(color("&7Saved entries: &f" + history.size()),
                 color("&7Latest: &f" + (latestHistory.length() > 45 ? latestHistory.substring(0, 45) + "..." : latestHistory)));
         inv.setItem(Math.max(0, Math.min(size - 1, historySlot)),
                 item(material(gui.getString("items.history.material", "BOOK"), Material.BOOK),
                         gui.getString("items.history.name", "&bDistribution History"), historyLore));
-        int pendingSlot = gui.getInt("items.pending.slot", size - 5);
         int total = pending.getOrDefault(p.getUniqueId(), Collections.emptyMap()).values().stream().mapToInt(Integer::intValue).sum();
         List<String> lore = gui.getStringList("items.pending.lore").stream().map(s -> color(s.replace("%pending_total%", String.valueOf(total)))).toList();
         inv.setItem(Math.max(0, Math.min(size - 1, pendingSlot)), item(material(gui.getString("items.pending.material", "CHEST"), Material.CHEST),
