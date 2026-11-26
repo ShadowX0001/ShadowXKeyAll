@@ -26,9 +26,11 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private final Map<UUID,Long> activity=new HashMap<>();
     private final Map<UUID,BossBar> bars=new HashMap<>();
     private BukkitTask ticker;
+    private org.bukkit.configuration.file.FileConfiguration messages, sounds;
+    private final Set<Long> soundMarks = new HashSet<>();
 
     @Override public void onEnable() {
-        saveDefaultConfig(); loadData();
+        saveDefaultConfig(); loadTextFiles(); loadData();
         if(nextRun<=0){nextRun=System.currentTimeMillis()+intervalMillis();running=getConfig().getBoolean("timer.start-on-enable",true);}
         PluginCommand command=getCommand("keyall");
         if(command!=null){command.setExecutor(this);command.setTabCompleter(this);}
@@ -38,6 +40,19 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         getLogger().info("ShadowXKeyAll enabled; timer restored.");
     }
     @Override public void onDisable(){if(ticker!=null)ticker.cancel();saveData();bars.values().forEach(BossBar::removeAll);bars.clear();}
+    private void loadTextFiles(){
+        File mf=new File(getDataFolder(),"messages.yml"); if(!mf.exists())saveResource("messages.yml",false);
+        File sf=new File(getDataFolder(),"sounds.yml"); if(!sf.exists())saveResource("sounds.yml",false);
+        messages=org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(mf);
+        sounds=org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(sf);
+    }
+    private String msg(String path){return messages==null?path:messages.getString(path,path);}
+    private void playConfigured(Player p,String path){
+        if(sounds==null||!sounds.getBoolean(path+".enabled",true))return;
+        String name=sounds.getString(path+".sound",""); if(name.isBlank())return;
+        try{p.playSound(p.getLocation(),org.bukkit.Sound.valueOf(name.toUpperCase(Locale.ROOT)),(float)sounds.getDouble(path+".volume",1),(float)sounds.getDouble(path+".pitch",1));}
+        catch(IllegalArgumentException ex){getLogger().warning("Invalid sounds.yml sound: "+name);}
+    }
     private long intervalMillis(){return Math.max(1,getConfig().getLong("timer.interval-seconds",3600))*1000L;}
     private String key(){return getConfig().getString("distribution.key-id","vote");}
     private int amount(){return Math.max(1,getConfig().getInt("distribution.amount",1));}
@@ -47,13 +62,16 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         long now=System.currentTimeMillis();
         for(Player p:Bukkit.getOnlinePlayers()){
             updateBar(p);
-            if(getConfig().getBoolean("countdown.actionbar"))p.sendActionBar(color("&bNext key in &f"+format(Math.max(0,nextRun-now))));
+            if(getConfig().getBoolean("countdown.actionbar"))p.sendActionBar(color(msg("countdown.actionbar").replace("%time%",format(Math.max(0,nextRun-now)))));
+            long seconds=Math.max(0,(nextRun-now+999)/1000);
+            if(running && getConfig().getBoolean("countdown.sounds-enabled",true) && seconds>0 && seconds<=10 && soundMarks.add(seconds))playConfigured(p,"countdown");
+            if(running && getConfig().getBoolean("countdown.chat-enabled",false) && getConfig().getIntegerList("countdown.chat-seconds").contains((int)seconds) && soundMarks.add(1000L+seconds))broadcast(msg("countdown.chat"),Map.of("%time%",format(seconds*1000L)));
         }
         if(running && now>=nextRun)distribute();
         if(running && getConfig().getBoolean("announcements.enabled")){
             long left=Math.max(0,(nextRun-now)/1000);
             for(int sec:getConfig().getIntegerList("announcements.before-seconds"))
-                if(left==sec)broadcast(getConfig().getString("announcements.warning"),Map.of("%time%",format(left*1000L)));
+                if(left==sec)broadcast(msg("announcements.warning"),Map.of("%time%",format(left*1000L)));
         }
         if(now-lastSave>=Math.max(10,getConfig().getLong("storage.save-interval-seconds",30))*1000L){saveData();lastSave=now;}
     }
@@ -66,7 +84,9 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                 pending.merge(p.getUniqueId(),amount(),Integer::sum);queued++;
             }
         }
-        broadcast(getConfig().getString("announcements.distributed"),Map.of("%amount%",String.valueOf(amount()),"%key%",key(),"%online%",String.valueOf(paid),"%offline%",String.valueOf(queued)));
+        broadcast(msg("announcements.distributed"),Map.of("%amount%",String.valueOf(amount()),"%key%",key(),"%online%",String.valueOf(paid),"%offline%",String.valueOf(queued)));
+        for(Player p:Bukkit.getOnlinePlayers())playConfigured(p,"reward");
+        soundMarks.clear();
         getLogger().info("KeyAll cycle: "+paid+" delivered online; "+queued+" queued offline.");
         nextRun=System.currentTimeMillis()+intervalMillis();saveData();
     }
@@ -96,12 +116,14 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
     private void updateBar(Player p){
         if(!getConfig().getBoolean("countdown.bossbar",true))return;
-        BossBar bar=bars.computeIfAbsent(p.getUniqueId(),id->Bukkit.createBossBar("",BarColor.BLUE,BarStyle.SOLID));
+        BossBar bar=bars.computeIfAbsent(p.getUniqueId(),id->Bukkit.createBossBar("",parseColor(getConfig().getString("countdown.bossbar-color","BLUE")),parseStyle(getConfig().getString("countdown.bossbar-style","SOLID"))));
         long left=Math.max(0,nextRun-System.currentTimeMillis());
-        bar.setTitle(color("&bShadowXKeyAll &8» &f"+format(left)));
+        bar.setTitle(color(getConfig().getString("countdown.bossbar-title","&bShadowXKeyAll &8» &f%time%").replace("%time%",format(left))));
         bar.setProgress(Math.max(0,Math.min(1,1.0-(double)left/intervalMillis())));
         if(!bar.getPlayers().contains(p))bar.addPlayer(p);
     }
+    private BarColor parseColor(String v){try{return BarColor.valueOf(v.toUpperCase(Locale.ROOT));}catch(Exception e){return BarColor.BLUE;}}
+    private BarStyle parseStyle(String v){try{return BarStyle.valueOf(v.toUpperCase(Locale.ROOT));}catch(Exception e){return BarStyle.SOLID;}}
     private void openGui(Player p){
         int size=getConfig().getInt("gui.size",27);if(size<9||size>54||size%9!=0)size=27;
         Inventory inv=Bukkit.createInventory(null,size,color(getConfig().getString("gui.title","&8ShadowXKeyAll")));
@@ -122,10 +144,10 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         if(args.length==0){if(sender instanceof Player p)openGui(p);else send(sender,"&eTime remaining: &b"+format(Math.max(0,nextRun-System.currentTimeMillis())));return true;}
         String sub=args[0].toLowerCase(Locale.ROOT);
         if(sub.equals("status")){send(sender,"&eTimer: &f"+(running?"running":"stopped")+" &7| &eNext: &b"+format(Math.max(0,nextRun-System.currentTimeMillis())));return true;}
-        if(!sender.hasPermission("shadowxkeyall.admin")){send(sender,getConfig().getString("messages.no-permission","&cNo permission."));return true;}
+        if(!sender.hasPermission("shadowxkeyall.admin")){send(sender,msg("no-permission"));return true;}
         try{
             switch(sub){
-                case "reload"->{reloadConfig();send(sender,"&aConfiguration reloaded.");}
+                case "reload"->{reloadConfig();loadTextFiles();bars.values().forEach(b->{b.setColor(parseColor(getConfig().getString("countdown.bossbar-color","BLUE")));b.setStyle(parseStyle(getConfig().getString("countdown.bossbar-style","SOLID")));});send(sender,msg("admin.reloaded"));}
                 case "start"->{running=true;if(pausedRemaining>=0){nextRun=System.currentTimeMillis()+pausedRemaining;pausedRemaining=-1;}else if(nextRun<=System.currentTimeMillis())nextRun=System.currentTimeMillis()+intervalMillis();send(sender,"&aTimer started.");}
                 case "stop"->{running=false;pausedRemaining=-1;send(sender,"&cTimer stopped.");}
                 case "pause"->{if(running){pausedRemaining=Math.max(0,nextRun-System.currentTimeMillis());running=false;}send(sender,"&eTimer paused.");}
@@ -136,7 +158,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                 case "preview"->send(sender,"&ePreview: &f"+amount()+"x "+key()+" in "+format(Math.max(0,nextRun-System.currentTimeMillis())));
                 case "pending"->{if(args.length<2)throw new IllegalArgumentException("Usage: /keyall pending <player>");OfflinePlayer target=Bukkit.getOfflinePlayer(args[1]);send(sender,"&ePending: &f"+pending.getOrDefault(target.getUniqueId(),0));}
                 case "clearpending"->{if(args.length<2)throw new IllegalArgumentException("Usage: /keyall clearpending <player>");OfflinePlayer target=Bukkit.getOfflinePlayer(args[1]);pending.remove(target.getUniqueId());send(sender,"&aPending rewards cleared.");}
-                default->send(sender,getConfig().getString("messages.help","&7/keyall <status|start|stop|pause|resume|reload|set|give|giveall|preview|pending|clearpending>"));
+                default->send(sender,msg("help"));
             }
         }catch(NumberFormatException ex){send(sender,"&cInvalid number.");}catch(IllegalArgumentException|IllegalStateException ex){send(sender,"&c"+ex.getMessage());}
         saveData();return true;
@@ -146,10 +168,10 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         if(args.length==2&&(args[0].equalsIgnoreCase("give")||args[0].equalsIgnoreCase("pending")||args[0].equalsIgnoreCase("clearpending")))return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(n->n.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         return Collections.emptyList();
     }
-    private void send(CommandSender s,String message){s.sendMessage(color(getConfig().getString("messages.prefix","&8[&bShadowXKeyAll&8] ")+message));}
+    private void send(CommandSender s,String message){s.sendMessage(color(msg("prefix")+message));}
     private void broadcast(String message,Map<String,String> vars){if(message==null)return;for(var entry:vars.entrySet())message=message.replace(entry.getKey(),entry.getValue());Bukkit.broadcastMessage(color(message));}
     private String color(String text){return ChatColor.translateAlternateColorCodes('&',text==null?"":text);}
-    private String format(long millis){long sec=Math.max(0,millis/1000);return String.format(Locale.ROOT,"%02d:%02d:%02d",sec/3600,(sec%3600)/60,sec%60);}
+    private String format(long millis){long sec=Math.max(0,(millis+999)/1000);long h=sec/3600,m=(sec%3600)/60,s=sec%60;return h>0?String.format(Locale.ROOT,"%02d:%02d:%02d",h,m,s):String.format(Locale.ROOT,"%02d:%02d",m,s);}
     private File dataFile(){return new File(getDataFolder(),"data.yml");}
     private void loadData(){
         if(!getDataFolder().exists())getDataFolder().mkdirs();
