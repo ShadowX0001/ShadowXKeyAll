@@ -384,7 +384,11 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             return;
         }
         String id = nearestTimer();
-        if (id == null) return;
+        if (id == null) {
+            BossBar old = bars.remove(p.getUniqueId());
+            if (old != null) old.removeAll();
+            return;
+        }
         BossBar bar = bars.computeIfAbsent(p.getUniqueId(), ignored ->
                 Bukkit.createBossBar("", barColor(), barStyle()));
         long left = Math.max(0, nextRuns.get(id) - System.currentTimeMillis());
@@ -757,6 +761,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         org.bukkit.scoreboard.Objective objective = board.getObjective("sxka");
         if (objective == null) objective = board.registerNewObjective("sxka", org.bukkit.scoreboard.Criteria.DUMMY,
                 color(getConfig().getString("countdown.scoreboard.title", "&b&lKEYALL")));
+        objective.setDisplayName(color(getConfig().getString("countdown.scoreboard.title", "&b&lKEYALL")));
         objective.setDisplaySlot(org.bukkit.scoreboard.DisplaySlot.SIDEBAR);
         String id = nearestTimer();
         String time = id == null ? "--:--" : format(Math.max(0, nextRuns.get(id) - System.currentTimeMillis()));
