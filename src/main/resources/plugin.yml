@@ -4,7 +4,7 @@ main: com.shadowx.keyall.ShadowXKeyAll
 api-version: '1.21'
 authors: [ShadowX0001]
 description: Multi-key timed crate distribution with persistent offline rewards.
-softdepend: [PlaceholderAPI, ExcellentCrates, CrazyCrates, PhoenixCrates, Votifier]
+softdepend: [PlaceholderAPI, ExcellentCrates, CrazyCrates, PhoenixCrates, Votifier, Vault]
 commands:
   shadowxkeyall:
     description: ShadowXKeyAll main command and administration
