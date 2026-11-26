@@ -60,6 +60,23 @@ commands:
 ```
 Tokens: `%player%`, `%uuid%`, `%key%`, `%amount%`.
 
+## Runtime timer and key management commands
+
+All commands below are available from both `/shadowxkeyall` and its `/keyall` / `/ska` aliases:
+
+- `/keyall setinterval <keyId> <seconds>` (alias: `set`) — changes and saves the recurring interval in `rewards.yml`, and resets that key's next run.
+- `/keyall timer <keyId> <seconds>` — changes only the current remaining countdown; it does not change the recurring interval.
+- `/keyall addkey <keyId> <intervalSeconds> [amount]` — creates a new enabled key timer in `rewards.yml`.
+- `/keyall removekey <keyId>` — removes a key definition, its timer and its pending queued amount.
+- `/keyall setamount <keyId> <amount>` — changes and saves the amount distributed each cycle.
+- `/keyall setcommand <keyId> <console command...>` — replaces the key's reward command list.
+- `/keyall addcommand <keyId> <console command...>` — appends another console reward command.
+- `/keyall listcommands <keyId>` — displays the configured commands.
+
+Reward commands support `%player%`, `%uuid%`, `%key%` and `%amount%`. Use a crate plugin's console grant command in `rewards.yml`; for example, `crazycrates give virtual vote %amount% %player%`. After editing files manually, run `/keyall reload`.
+
+The chat countdown, warning/distribution broadcasts, and received/pending reward messages are editable in `messages.yml`. Countdown intervals are controlled by `config.yml` under `countdown.chat.seconds`; BossBar, ActionBar, chat and scoreboard displays can be enabled or disabled independently.
+
 ## Commands
 - `/keyall` - open GUI
 - `/keyall status` or `/keyall preview`
