@@ -22,6 +22,8 @@ import org.bukkit.scheduler.BukkitTask;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public final class ShadowXKeyAll extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
@@ -30,6 +32,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private final Map<UUID, Map<String, Integer>> pending = new HashMap<>();
     private final Map<UUID, Long> activity = new HashMap<>();
     private final Map<UUID, BossBar> bars = new HashMap<>();
+    private final Map<UUID, org.bukkit.scoreboard.Scoreboard> scoreboards = new HashMap<>();
     private final Set<String> countdownMarks = new HashSet<>();
     private final List<String> history = new ArrayList<>();
     private FileConfiguration messages, rewards, announcements, gui, schedules, sounds, playersData, historyData;
@@ -176,6 +179,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private String mode(String id) { return rewards.getString("keys." + id + ".mode", getConfig().getString("distribution.default-mode", "ONLINE_AND_OFFLINE")); }
 
     private void tick() {
+        runSchedules();
         long now = System.currentTimeMillis();
         if (timersRunning) {
             for (String id : new ArrayList<>(nextRuns.keySet())) {
@@ -188,6 +192,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
             updateBar(player);
+            updateScoreboard(player);
             if (getConfig().getBoolean("countdown.actionbar.enabled", false)) {
                 String nearest = nearestTimer();
                 if (nearest != null) player.sendActionBar(color(getConfig().getString("countdown.actionbar.message", "&bNext key in %time%")
@@ -224,12 +229,13 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
 
     private void distribute(String id) {
         int delivered = 0, queued = 0, count = amount(id);
-        for (Player p : Bukkit.getOnlinePlayers()) {
+        String distributionMode = mode(id).toUpperCase(Locale.ROOT);
+        if (!distributionMode.equals("OFFLINE_ONLY")) for (Player p : Bukkit.getOnlinePlayers()) {
             if (!eligible(p, id)) continue;
             if (give(p, id, count)) delivered++;
             else queue(p.getUniqueId(), id, count);
         }
-        if (!mode(id).equalsIgnoreCase("ONLINE_ONLY")) {
+        if (!distributionMode.equals("ONLINE_ONLY")) {
             for (org.bukkit.OfflinePlayer off : Bukkit.getOfflinePlayers()) {
                 if (off.isOnline() || !off.hasPlayedBefore()) continue;
                 queue(off.getUniqueId(), id, count);
@@ -364,10 +370,18 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         if (e.getView().getTitle().equals(color(gui.getString("title", "&8ShadowXKeyAll")))) e.setCancelled(true);
     }
     @EventHandler public void onJoin(PlayerJoinEvent e) {
-        Player p = e.getPlayer(); activity.put(p.getUniqueId(), System.currentTimeMillis()); deliverPending(p); updateBar(p);
+        Player p = e.getPlayer();
+        activity.put(p.getUniqueId(), System.currentTimeMillis());
+        applyJoinBonuses(p);
+        deliverPending(p);
+        updateBar(p);
+        updateScoreboard(p);
     }
     @EventHandler public void onQuit(PlayerQuitEvent e) {
-        BossBar b = bars.remove(e.getPlayer().getUniqueId()); if (b != null) b.removeAll();
+        UUID id = e.getPlayer().getUniqueId();
+        BossBar b = bars.remove(id); if (b != null) b.removeAll();
+        scoreboards.remove(id);
+        e.getPlayer().setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
     }
     @EventHandler public void onMove(PlayerMoveEvent e) {
         if (e.getTo() != null && (e.getFrom().getBlockX() != e.getTo().getBlockX()
@@ -450,7 +464,104 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         return Collections.emptyList();
     }
 
-    private void refreshBars() { for (Player p : Bukkit.getOnlinePlayers()) updateBar(p); }
+    private void refreshBars() { for (Player p : Bukkit.getOnlinePlayers()) { updateBar(p); updateScoreboard(p); } }
+
+    private void applyJoinBonuses(Player player) {
+        UUID uuid = player.getUniqueId();
+        boolean firstJoin = !playersData.getBoolean("players." + uuid + ".first-join-claimed", false);
+        LocalDate today = LocalDate.now();
+        LocalDate monday = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        YearMonth month = YearMonth.from(today);
+        for (String id : keyIds()) {
+            String base = "keys." + id + ".";
+            if (firstJoin) grantBonus(player, id, rewards.getInt(base + "first-join-bonus", 0), "first-join");
+            claimCalendarBonus(player, id, "daily", rewards.getInt(base + "daily-bonus", 0), today.toString());
+            claimCalendarBonus(player, id, "weekly", rewards.getInt(base + "weekly-bonus", 0), monday.toString());
+            claimCalendarBonus(player, id, "monthly", rewards.getInt(base + "monthly-bonus", 0), month.toString());
+        }
+        if (firstJoin) playersData.set("players." + uuid + ".first-join-claimed", true);
+        saveData();
+    }
+
+    private void claimCalendarBonus(Player player, String id, String period, int count, String periodKey) {
+        if (count <= 0) return;
+        String path = "players." + player.getUniqueId() + ".claims." + period + "." + id;
+        if (periodKey.equals(playersData.getString(path, ""))) return;
+        grantBonus(player, id, count, period);
+        playersData.set(path, periodKey);
+    }
+
+    private void grantBonus(Player player, String id, int count, String reason) {
+        if (count <= 0 || !nextRuns.containsKey(id) || !eligible(player, id)) return;
+        if (!give(player, id, count)) queue(player.getUniqueId(), id, count);
+        addHistory("BONUS type=" + reason + " player=" + player.getUniqueId() + " key=" + id + " amount=" + count);
+    }
+
+    private void grantScheduled(String scheduleName, List<String> ids) {
+        for (String id : ids) {
+            if (!nextRuns.containsKey(id)) { getLogger().warning("schedules.yml: unknown key id '" + id + "' in " + scheduleName); continue; }
+            int count = amount(id), delivered = 0, queued = 0;
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!eligible(player, id)) continue;
+                if (give(player, id, count)) delivered++; else { queue(player.getUniqueId(), id, count); queued++; }
+            }
+            for (org.bukkit.OfflinePlayer off : Bukkit.getOfflinePlayers()) {
+                if (off.isOnline() || !off.hasPlayedBefore()) continue;
+                queue(off.getUniqueId(), id, count); queued++;
+            }
+            addHistory("SCHEDULE name=" + scheduleName + " key=" + id + " online=" + delivered + " queued=" + queued);
+            getLogger().info("Schedule " + scheduleName + " granted " + id + ": online=" + delivered + ", queued=" + queued);
+        }
+        saveData();
+    }
+
+    private void runSchedules() {
+        if (!schedules.getBoolean("enabled", false)) return;
+        ZoneId zone;
+        try { zone = ZoneId.of(schedules.getString("timezone", "server").equalsIgnoreCase("server") ?
+                java.time.ZoneId.systemDefault().getId() : schedules.getString("timezone")); }
+        catch (Exception ex) { zone = ZoneId.systemDefault(); }
+        ZonedDateTime now = ZonedDateTime.now(zone);
+        String minute = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        if (schedules.getBoolean("daily.enabled", false) && now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")).equals(schedules.getString("daily.time", "18:00")))
+            fireScheduleOnce("daily", minute, schedules.getStringList("daily.keys"));
+        if (schedules.getBoolean("weekly.enabled", false) &&
+                now.getDayOfWeek().name().equalsIgnoreCase(schedules.getString("weekly.day", "SUNDAY")) &&
+                now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")).equals(schedules.getString("weekly.time", "18:00")))
+            fireScheduleOnce("weekly", minute, schedules.getStringList("weekly.keys"));
+        if (schedules.getBoolean("monthly.enabled", false) && now.getDayOfMonth() == schedules.getInt("monthly.day", 1) &&
+                now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")).equals(schedules.getString("monthly.time", "18:00")))
+            fireScheduleOnce("monthly", minute, schedules.getStringList("monthly.keys"));
+    }
+
+    private void fireScheduleOnce(String name, String minute, List<String> ids) {
+        if (minute.equals(playersData.getString("schedules.last." + name, ""))) return;
+        playersData.set("schedules.last." + name, minute);
+        grantScheduled(name, ids);
+    }
+
+    private void updateScoreboard(Player player) {
+        if (!getConfig().getBoolean("countdown.scoreboard.enabled", false)) {
+            if (scoreboards.remove(player.getUniqueId()) != null)
+                player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
+            return;
+        }
+        org.bukkit.scoreboard.Scoreboard board = scoreboards.computeIfAbsent(player.getUniqueId(), id ->
+                Bukkit.getScoreboardManager().getNewScoreboard());
+        org.bukkit.scoreboard.Objective objective = board.getObjective("sxka");
+        if (objective == null) objective = board.registerNewObjective("sxka", org.bukkit.scoreboard.Criteria.DUMMY,
+                color(getConfig().getString("countdown.scoreboard.title", "&b&lKEYALL")));
+        objective.setDisplaySlot(org.bukkit.scoreboard.DisplaySlot.SIDEBAR);
+        String id = nearestTimer();
+        String time = id == null ? "--:--" : format(Math.max(0, nextRuns.get(id) - System.currentTimeMillis()));
+        String keyName = id == null ? "No active key" : displayName(id);
+        String[] lines = {color("&7Next: &f" + keyName), color("&7Time: &b" + time), color("&8ShadowXKeyAll")};
+        board.getEntries().forEach(board::resetScores);
+        for (int i = 0; i < lines.length; i++) objective.getScore(lines[i]).setScore(lines.length - i);
+        player.setScoreboard(board);
+    }
+
+
     private void addHistory(String entry) {
         history.add(Instant.now() + " " + entry);
         while (history.size() > 500) history.remove(0);
