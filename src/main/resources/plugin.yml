@@ -8,7 +8,7 @@ softdepend: [PlaceholderAPI, ExcellentCrates, CrazyCrates, PhoenixCrates, Votifi
 commands:
   shadowxkeyall:
     description: ShadowXKeyAll main command and administration
-    usage: /shadowxkeyall [status|start|stop|pause|resume|reload|give|giveall|set|reset|history|stats|preview|settings|boost]
+    usage: /shadowxkeyall [status|start|stop|pause|resume|reload|addkey|removekey|setinterval|setamount|setcommand|addcommand|listcommands|give|giveall|set|reset|history|stats|preview|settings|boost]
     aliases: [keyall, ska]
 permissions:
   shadowxkeyall.admin:
