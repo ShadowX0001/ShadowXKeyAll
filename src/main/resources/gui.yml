@@ -19,6 +19,14 @@ items:
       - "&7Key ID: &f%key_id%"
       - "&7Amount: &f%amount%"
       - "&7Next drop: &f%time%"
+  schedule:
+    slot: 31
+    material: CLOCK
+    name: "&eSchedules"
+  history:
+    slot: 32
+    material: BOOK
+    name: "&bDistribution History"
   pending:
     slot: 40
     material: CHEST

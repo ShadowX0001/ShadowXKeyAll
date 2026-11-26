@@ -458,6 +458,21 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                     .replace("%amount%", String.valueOf(amount(id))).replace("%time%", format(Math.max(0, nextRuns.get(id) - System.currentTimeMillis())))));
             inv.setItem(slot++, item(material(gui.getString("items.keys.material", "TRIPWIRE_HOOK"), Material.TRIPWIRE_HOOK), name, lines));
         }
+        int scheduleSlot = gui.getInt("items.schedule.slot", 31);
+        List<String> scheduleLore = new ArrayList<>();
+        scheduleLore.add(color("&7Daily: &f" + (schedules.getBoolean("daily.enabled", false) ? schedules.getString("daily.time", "18:00") : "OFF")));
+        scheduleLore.add(color("&7Weekly: &f" + (schedules.getBoolean("weekly.enabled", false) ? schedules.getString("weekly.day", "SUNDAY") + " " + schedules.getString("weekly.time", "18:00") : "OFF")));
+        scheduleLore.add(color("&7Monthly: &f" + (schedules.getBoolean("monthly.enabled", false) ? schedules.getInt("monthly.day", 1) + " " + schedules.getString("monthly.time", "18:00") : "OFF")));
+        inv.setItem(Math.max(0, Math.min(size - 1, scheduleSlot)),
+                item(material(gui.getString("items.schedule.material", "CLOCK"), Material.CLOCK),
+                        gui.getString("items.schedule.name", "&eSchedules"), scheduleLore));
+        int historySlot = gui.getInt("items.history.slot", 32);
+        String latestHistory = history.isEmpty() ? "No entries yet" : history.get(history.size() - 1);
+        List<String> historyLore = List.of(color("&7Saved entries: &f" + history.size()),
+                color("&7Latest: &f" + (latestHistory.length() > 45 ? latestHistory.substring(0, 45) + "..." : latestHistory)));
+        inv.setItem(Math.max(0, Math.min(size - 1, historySlot)),
+                item(material(gui.getString("items.history.material", "BOOK"), Material.BOOK),
+                        gui.getString("items.history.name", "&bDistribution History"), historyLore));
         int pendingSlot = gui.getInt("items.pending.slot", size - 5);
         int total = pending.getOrDefault(p.getUniqueId(), Collections.emptyMap()).values().stream().mapToInt(Integer::intValue).sum();
         List<String> lore = gui.getStringList("items.pending.lore").stream().map(s -> color(s.replace("%pending_total%", String.valueOf(total)))).toList();
