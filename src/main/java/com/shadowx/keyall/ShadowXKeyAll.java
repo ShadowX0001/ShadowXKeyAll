@@ -548,7 +548,14 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                     for (String id : new ArrayList<>(nextRuns.keySet())) if (!rewards.getBoolean("keys." + id + ".enabled", true)) nextRuns.remove(id);
                     initializeTimers(); refreshBars(); send(sender, msg("admin.reloaded"));
                 }
-                case "start" -> { timersRunning = true; for (String id : keyIds()) if (nextRuns.get(id) <= System.currentTimeMillis()) nextRuns.put(id, System.currentTimeMillis() + interval(id)); send(sender, msg("admin.started")); }
+                case "start" -> {
+                    long now = System.currentTimeMillis();
+                    pausedRemaining.forEach((id, left) -> nextRuns.put(id, now + left));
+                    pausedRemaining.clear();
+                    timersRunning = true;
+                    for (String id : keyIds()) if (nextRuns.get(id) <= now) nextRuns.put(id, now + interval(id));
+                    send(sender, msg("admin.started"));
+                }
                 case "stop" -> { timersRunning = false; pausedRemaining.clear(); send(sender, msg("admin.stopped")); }
                 case "pause" -> { if (timersRunning) for (String id : keyIds()) pausedRemaining.put(id, Math.max(0, nextRuns.get(id) - System.currentTimeMillis())); timersRunning = false; send(sender, msg("admin.paused")); }
                 case "resume" -> { timersRunning = true; pausedRemaining.forEach((id, left) -> nextRuns.put(id, System.currentTimeMillis() + left)); pausedRemaining.clear(); send(sender, msg("admin.resumed")); }
@@ -556,12 +563,16 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                     if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall reset <keyId>");
                     requireKey(args[1]);
                     nextRuns.put(args[1], System.currentTimeMillis() + interval(args[1]));
+                    if (pausedRemaining.containsKey(args[1])) pausedRemaining.put(args[1], interval(args[1]));
                     countdownMarks.removeIf(mark -> mark.startsWith(args[1] + ":") || mark.contains(":" + args[1] + ":"));
                     send(sender, "&aTimer reset for " + args[1] + ".");
                 }
                 case "set" -> {
                     if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall set <keyId> <seconds>");
-                    requireKey(args[1]); nextRuns.put(args[1], System.currentTimeMillis() + Math.max(1, Long.parseLong(args[2])) * 1000L);
+                    requireKey(args[1]);
+                    long newDelay = Math.max(1, Long.parseLong(args[2])) * 1000L;
+                    nextRuns.put(args[1], System.currentTimeMillis() + newDelay);
+                    if (pausedRemaining.containsKey(args[1])) pausedRemaining.put(args[1], newDelay);
                     send(sender, "&aTimer for " + args[1] + " updated.");
                 }
                 case "give" -> {
