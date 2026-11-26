@@ -1,4 +1,4 @@
-"prefix: "&8[&3&lSHADOW&b&lX &8| &bKeyAll&8] &r"
+prefix: "&8[&3&lSHADOW&b&lX &8| &bKeyAll&8] &r"
 no-permission: "&cYou don't have permission."
 help: "&8&m----------------&r &b&lSHADOWX KEYALL &8&m----------------\n&b/keyall &7- Open timer menu\n&b/keyall status &7- View every key timer\n&b/keyall setinterval <key> <seconds> &7- Save timer interval\n&b/keyall timer <key> <seconds> &7- Change remaining time\n&b/keyall addkey <id> <seconds> [amount] &7- Add key\n&b/keyall setamount <key> <amount> &7- Set key amount\n&b/keyall setcommand <key> <command...> &7- Replace crate command\n&b/keyall addcommand <key> <command...> &7- Add crate command\n&b/keyall listcommands <key> &7- List crate commands\n&b/keyall give <player> <key> <amount> &7- Give keys\n&b/keyall giveall <key> [amount] &7- Give online players\n&b/keyall reload &7- Reload all files\n&8&m-----------------------------------------------"
 admin:
