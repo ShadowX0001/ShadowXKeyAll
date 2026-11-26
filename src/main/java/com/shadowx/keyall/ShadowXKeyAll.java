@@ -49,9 +49,12 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private long lastPendingRetry;
 
     @Override public void onEnable() {
+        getLogger().info("Loading config.yml...");
         saveDefaultConfig();
         loadAllFiles();
+        getLogger().info("Loading data/players.yml and data/history.yml...");
         loadData();
+        getLogger().info("Initializing independent key timers...");
         initializeTimers();
         PluginCommand command = getCommand("shadowxkeyall");
         if (command == null) {
@@ -125,13 +128,21 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         if (!getDataFolder().exists()) getDataFolder().mkdirs();
         String[] names = {"messages.yml", "rewards.yml", "announcements.yml", "gui.yml", "schedules.yml", "sounds.yml"};
         for (String name : names) if (!new File(getDataFolder(), name).exists()) saveResource(name, false);
+        getLogger().info("Loading messages.yml...");
         messages = loadYaml("messages.yml");
+        getLogger().info("Loading rewards.yml...");
         rewards = loadYaml("rewards.yml");
+        getLogger().info("Loading announcements.yml...");
         announcements = loadYaml("announcements.yml");
+        getLogger().info("Loading gui.yml...");
         gui = loadYaml("gui.yml");
+        getLogger().info("Loading schedules.yml...");
         schedules = loadYaml("schedules.yml");
+        getLogger().info("Loading sounds.yml...");
         sounds = loadYaml("sounds.yml");
+        getLogger().info("Loading data/players.yml...");
         playersData = loadYaml("data/players.yml");
+        getLogger().info("Loading data/history.yml...");
         historyData = loadYaml("data/history.yml");
         validateConfiguration();
     }
