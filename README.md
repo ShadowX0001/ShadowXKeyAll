@@ -10,6 +10,7 @@ Multi-key timed crate distribution for Paper servers. Built with Java 21 and Pap
 - First-join, daily, weekly and monthly per-key join bonuses.
 - Optional daily, weekly and monthly calendar schedules in `schedules.yml`.
 - Optional dynamic key intervals based on online player count.
+- Temporary global key amount boosts with persisted expiry (`/keyall boost <multiplier> <seconds>`).
 - Optional lucky extra keys, daily login streak rewards and per-player cooldowns.
 - Admin settings GUI for BossBar, ActionBar, chat, scoreboard and maintenance toggles.
 - Optional asynchronous Discord webhook notifications.
