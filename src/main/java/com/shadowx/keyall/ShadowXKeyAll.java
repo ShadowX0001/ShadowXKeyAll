@@ -590,6 +590,13 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                     if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall clearpending <player>");
                     pending.remove(Bukkit.getOfflinePlayer(args[1]).getUniqueId()); send(sender, "&aPending rewards cleared.");
                 }
+                case "stats" -> {
+                    int pendingPlayers = pending.size();
+                    int pendingTotal = pending.values().stream().flatMap(map -> map.values().stream()).mapToInt(Integer::intValue).sum();
+                    send(sender, "&eKeys: &b" + nextRuns.size() + " &7| &eOnline: &b" + Bukkit.getOnlinePlayers().size());
+                    send(sender, "&ePending players: &b" + pendingPlayers + " &7| &ePending keys: &b" + pendingTotal);
+                    send(sender, "&eHistory entries: &b" + history.size());
+                }
                 case "history" -> {
                     int count = Math.min(10, history.size());
                     if (count == 0) send(sender, "&7No history yet.");
@@ -629,7 +636,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         return null;
     }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "reset", "give", "giveall", "pending", "clearpending", "history", "preview", "settings").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
+        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "reset", "give", "giveall", "pending", "clearpending", "history", "stats", "preview", "settings").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("set", "reset", "giveall").contains(args[0].toLowerCase(Locale.ROOT))) return keyIds().stream().filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("give", "pending", "clearpending").contains(args[0].toLowerCase(Locale.ROOT))) return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) return keyIds().stream().filter(s -> s.startsWith(args[2].toLowerCase(Locale.ROOT))).toList();
