@@ -400,6 +400,17 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             Material filler = material(gui.getString("filler.material", "BLACK_STAINED_GLASS_PANE"), Material.BLACK_STAINED_GLASS_PANE);
             for (int i = 0; i < size; i++) inv.setItem(i, item(filler, gui.getString("filler.name", " "), List.of()));
         }
+        int overviewSlot = gui.getInt("items.overview.slot", 4);
+        String nearestId = nearestTimer();
+        String nextText = nearestId == null ? "--:--" : format(Math.max(0, nextRuns.get(nearestId) - System.currentTimeMillis()));
+        List<String> overviewLore = new ArrayList<>();
+        for (String line : gui.getStringList("items.overview.lore")) {
+            overviewLore.add(color(line.replace("%key_count%", String.valueOf(keyIds().size()))
+                    .replace("%next%", nextText).replace("%next_key%", nearestId == null ? "none" : nearestId)));
+        }
+        inv.setItem(Math.max(0, Math.min(size - 1, overviewSlot)),
+                item(material(gui.getString("items.overview.material", "NETHER_STAR"), Material.NETHER_STAR),
+                        gui.getString("items.overview.name", "&bKeyAll Overview"), overviewLore));
         int slot = 10;
         for (String id : keyIds()) {
             if (slot >= size - 1) break;
