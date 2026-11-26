@@ -15,4 +15,4 @@ monthly:
   day: 1
   time: "18:00"
   keys: [rare]
-events: []
+events: [] # Example: [{id: christmas, date: '2026-12-25', time: '18:00', keys: [vote, rare]}]
