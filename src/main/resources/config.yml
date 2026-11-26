@@ -1,13 +1,15 @@
-# ShadowXKeyAll - all durations are seconds unless stated otherwise.
+# ShadowXKeyAll configuration
+# Durations are in seconds. Backup config.yml before editing.
 timer:
   interval-seconds: 3600
   start-on-enable: true
-  pause-during-maintenance: false
 distribution:
-  mode: ONLINE_AND_OFFLINE # ONLINE_ONLY, ONLINE_AND_OFFLINE
+  # ONLINE_ONLY or ONLINE_AND_OFFLINE
+  mode: ONLINE_AND_OFFLINE
   amount: 1
   key-id: vote
-  # Console commands run once per eligible player. Placeholders: %player%, %key%, %amount%
+  # Console commands; supported tokens: %player%, %uuid%, %key%, %amount%
+  # Adjust this command to match your crate plugin.
   commands:
     - "excellentcrates key give %player% %key% %amount%"
 eligibility:
@@ -19,22 +21,15 @@ eligibility:
 countdown:
   bossbar: true
   actionbar: false
-  chat: false
 announcements:
   enabled: true
   before-seconds: [300, 60, 10]
   warning: "&eKeyAll starts in &6%time%&e!"
-  distributed: "&aShadowXKeyAll: &f%amount% %key% key(s) distributed to eligible players."
+  distributed: "&aShadowXKeyAll: &f%amount% %key% key(s) distributed. &7(Online: %online%, offline queued: %offline%)"
 messages:
   prefix: "&8[&bShadowXKeyAll&8] "
   no-permission: "&cYou don't have permission."
-  reloaded: "&aConfiguration reloaded."
-  started: "&aTimer started."
-  stopped: "&cTimer stopped."
-  paused: "&eTimer paused."
-  resumed: "&aTimer resumed."
-  status: "&eNext KeyAll: &b%time%"
-  help: "&7/keyall <status|start|stop|pause|resume|reload|give|giveall|preview>"
+  help: "&7/keyall <status|start|stop|pause|resume|reload|set|give|giveall|preview|pending|clearpending>"
 gui:
   title: "&8ShadowXKeyAll"
   size: 27
