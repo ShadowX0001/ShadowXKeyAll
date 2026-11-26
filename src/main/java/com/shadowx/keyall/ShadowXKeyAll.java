@@ -525,7 +525,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
             if (sender instanceof Player p) {
-                if (!p.hasPermission("shadowxkeyall.use")) { send(p, msg("no-permission")); return true; }
+                if (!p.hasPermission(getConfig().getString("gui.permission", "shadowxkeyall.use"))) { send(p, msg("no-permission")); return true; }
                 openGui(p);
             } else send(sender, "&eActive key timers: &b" + nextRuns.size());
             return true;
@@ -678,10 +678,10 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
 
     private void claimCalendarBonus(Player player, String id, String period, int count, String periodKey) {
-        if (count <= 0) return;
+        if (count <= 0 && !period.equals("daily")) return;
         String path = "players." + player.getUniqueId() + ".claims." + period + "." + id;
         if (periodKey.equals(playersData.getString(path, ""))) return;
-        grantBonus(player, id, count, period);
+        if (count > 0) grantBonus(player, id, count, period);
         playersData.set(path, periodKey);
         if (period.equals("daily")) {
             String streakPath = "players." + player.getUniqueId() + ".streak." + id;

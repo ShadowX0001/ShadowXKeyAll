@@ -35,5 +35,3 @@ integrations:
     webhook-url: ""
 maintenance:
   enabled: false
-anti-abuse:
-  one-reward-per-cycle: true
