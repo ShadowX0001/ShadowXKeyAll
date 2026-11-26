@@ -30,6 +30,9 @@ gui:
   permission: shadowxkeyall.use
 integrations:
   placeholderapi: true
+  discord:
+    enabled: false
+    webhook-url: ""
 maintenance:
   enabled: false
 anti-abuse:

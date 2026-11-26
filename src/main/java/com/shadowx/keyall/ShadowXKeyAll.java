@@ -24,6 +24,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -306,6 +310,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         countdownMarks.removeIf(mark -> mark.startsWith(id + ":") || mark.startsWith("chat:" + id + ":") || mark.startsWith("announce:" + id + ":"));
         saveData();
         getLogger().info("Key cycle " + id + ": delivered=" + delivered + ", queued=" + queued);
+        sendDiscord("Key cycle **" + id + "**: delivered " + delivered + ", queued " + queued + ".");
     }
 
     private void queue(UUID uuid, String id, int count) {
@@ -728,6 +733,24 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         history.add(Instant.now() + " " + entry);
         while (history.size() > 500) history.remove(0);
     }
+    private void sendDiscord(String message) {
+        if (!getConfig().getBoolean("integrations.discord.enabled", false)) return;
+        String webhook = getConfig().getString("integrations.discord.webhook-url", "").trim();
+        if (webhook.isEmpty()) return;
+        String json = "{\"content\":\"" + message.replace("\\", "\\\\").replace("\"", "\\\"")
+                .replace("\n", "\\n") + "\"}";
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(webhook))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+            HttpClient.newHttpClient().sendAsync(request, HttpResponse.BodyHandlers.discarding())
+                    .exceptionally(error -> { getLogger().warning("Discord webhook request failed: " + error.getMessage()); return null; });
+        } catch (IllegalArgumentException ex) {
+            getLogger().warning("Invalid Discord webhook URL in config.yml.");
+        }
+    }
+
     private void playAll(String path) { for (Player p : Bukkit.getOnlinePlayers()) play(p, path); }
     private void play(Player p, String path) {
         if (!sounds.getBoolean(path + ".enabled", false)) return;
