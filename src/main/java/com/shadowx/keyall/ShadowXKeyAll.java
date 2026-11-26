@@ -32,7 +32,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     @Override public void onEnable() {
         saveDefaultConfig(); loadTextFiles(); loadData();
         if(nextRun<=0){nextRun=System.currentTimeMillis()+intervalMillis();running=getConfig().getBoolean("timer.start-on-enable",true);}
-        PluginCommand command=getCommand("keyall");
+        PluginCommand command=getCommand("shadowxkeyall");
         if(command!=null){command.setExecutor(this);command.setTabCompleter(this);}
         Bukkit.getPluginManager().registerEvents(this,this);
         ticker=Bukkit.getScheduler().runTaskTimer(this,this::tick,20L,20L);
@@ -60,11 +60,14 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
 
     private void tick(){
         long now=System.currentTimeMillis();
+        long countdownSeconds=Math.max(0,(nextRun-now+999)/1000);
+        if(running && getConfig().getBoolean("countdown.sounds-enabled",true) && countdownSeconds>0 && countdownSeconds<=10 && soundMarks.add(countdownSeconds)){
+            for(Player online:Bukkit.getOnlinePlayers())playConfigured(online,"countdown");
+        }
         for(Player p:Bukkit.getOnlinePlayers()){
             updateBar(p);
             if(getConfig().getBoolean("countdown.actionbar"))p.sendActionBar(color(msg("countdown.actionbar").replace("%time%",format(Math.max(0,nextRun-now)))));
             long seconds=Math.max(0,(nextRun-now+999)/1000);
-            if(running && getConfig().getBoolean("countdown.sounds-enabled",true) && seconds>0 && seconds<=10 && soundMarks.add(seconds))playConfigured(p,"countdown");
             if(running && getConfig().getBoolean("countdown.chat-enabled",false) && getConfig().getIntegerList("countdown.chat-seconds").contains((int)seconds) && soundMarks.add(1000L+seconds))broadcast(msg("countdown.chat"),Map.of("%time%",format(seconds*1000L)));
         }
         if(running && now>=nextRun)distribute();
