@@ -54,6 +54,11 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         command.setExecutor(this);
         command.setTabCompleter(this);
         Bukkit.getPluginManager().registerEvents(this, this);
+        if (getConfig().getBoolean("integrations.placeholderapi", true)
+                && Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new ShadowXKeyAllExpansion(this).register();
+            getLogger().info("PlaceholderAPI expansion registered: %shadowxkeyall_<placeholder>%");
+        }
         ticker = Bukkit.getScheduler().runTaskTimer(this, this::tick, 20L, 20L);
         for (Player player : Bukkit.getOnlinePlayers()) {
             activity.put(player.getUniqueId(), System.currentTimeMillis());
