@@ -9,13 +9,13 @@ admin:
   resumed: "&aTimers resumed."
 countdown:
   actionbar: "&bNext key in &f%time%"
-  chat: "&e&lKEYALL &8» &fNext keys arrive in &b%time%&f!"
+  chat: "&8&m━━━━━━━━━━━━━━&r &b&l✦ KEYALL COUNTDOWN ✦ &8&m━━━━━━━━━━━━━━\n&f  Next &b%key% &fkey drop in &e&l%time%&f!\n&7  Get ready! Your keys are coming soon.\n&8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 announcements:
-  warning: "&e&lKEYALL &8» &fThe next key drop is in &6%time%&f. Get ready!"
-  distributed: "&a&lKEYALL &8» &f%amount%x &b%key% &fkey(s) distributed! &7(Online: %online%, queued: %offline%)"
+  warning: "&8[&b&lKEYALL&8] &fNext &b%key% &fkey drop in &e&l%time%&f. &aGet ready!"
+  distributed: "&8&m━━━━━━━━━━━━━━&r &a&l✦ KEY DROP COMPLETE ✦ &8&m━━━━━━━━━━━━━━\n&f  &b%amount%x %key% &fkey(s) have been processed!\n&7  Delivered: &a%online% &8| &7Pending offline: &e%offline%\n&8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 rewards:
-  received: "&a&lKEYS RECEIVED &8» &fYou received &b%amount%x %key% &fkey(s). Enjoy!"
-  pending: "&eYou have %amount% pending %key% key(s)."
+  received: "&8[&a&lKEYS RECEIVED&8] &fYou got &b&l%amount%x %key%&f! &eGood luck and enjoy!"
+  pending: "&8[&e&lPENDING KEYS&8] &fYou have &e%amount%x %key% &fkey(s) waiting for you!"
 errors:
   invalid-number: "&cInvalid number."
   player-not-found: "&cPlayer not found."
