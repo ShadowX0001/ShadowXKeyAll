@@ -611,6 +611,97 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                     if (pausedRemaining.containsKey(args[1])) pausedRemaining.put(args[1], newDelay);
                     send(sender, "&aTimer for " + args[1] + " updated.");
                 }
+                case "setinterval", "set" -> {
+                    if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall setinterval <keyId> <seconds>");
+                    requireKey(args[1]);
+                    long seconds = Long.parseLong(args[2]);
+                    if (seconds < 1 || seconds > 31536000L) throw new IllegalArgumentException("Timer must be between 1 and 31536000 seconds.");
+                    rewards.set("keys." + args[1] + ".interval-seconds", seconds);
+                    long delay = seconds * 1000L;
+                    nextRuns.put(args[1], System.currentTimeMillis() + delay);
+                    if (pausedRemaining.containsKey(args[1])) pausedRemaining.put(args[1], delay);
+                    saveRewards();
+                    countdownMarks.removeIf(mark -> mark.contains(":" + args[1] + ":"));
+                    send(sender, "&aSaved &b" + args[1] + " &ainterval: &f" + format(delay));
+                }
+                case "timer" -> {
+                    if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall timer <keyId> <seconds>");
+                    requireKey(args[1]);
+                    long seconds = Long.parseLong(args[2]);
+                    if (seconds < 1 || seconds > 31536000L) throw new IllegalArgumentException("Remaining time must be between 1 and 31536000 seconds.");
+                    long delay = seconds * 1000L;
+                    nextRuns.put(args[1], System.currentTimeMillis() + delay);
+                    if (pausedRemaining.containsKey(args[1])) pausedRemaining.put(args[1], delay);
+                    countdownMarks.removeIf(mark -> mark.contains(":" + args[1] + ":"));
+                    send(sender, "&aRemaining timer for &b" + args[1] + " &aset to &f" + format(delay));
+                }
+                case "setamount" -> {
+                    if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall setamount <keyId> <amount>");
+                    requireKey(args[1]);
+                    int value = Integer.parseInt(args[2]);
+                    if (value < 1 || value > 1000000) throw new IllegalArgumentException("Amount must be between 1 and 1000000.");
+                    rewards.set("keys." + args[1] + ".amount", value);
+                    saveRewards();
+                    send(sender, "&aSaved &b" + args[1] + " &aamount: &f" + value);
+                }
+                case "setcommand" -> {
+                    if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall setcommand <keyId> <console command...>");
+                    requireKey(args[1]);
+                    String commandText = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+                    if (commandText.startsWith("/")) commandText = commandText.substring(1);
+                    rewards.set("keys." + args[1] + ".commands", List.of(commandText));
+                    saveRewards();
+                    send(sender, "&aReplaced reward command for &b" + args[1] + "&a.");
+                }
+                case "addcommand" -> {
+                    if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall addcommand <keyId> <console command...>");
+                    requireKey(args[1]);
+                    String commandText = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+                    if (commandText.startsWith("/")) commandText = commandText.substring(1);
+                    List<String> commands = new ArrayList<>(rewards.getStringList("keys." + args[1] + ".commands"));
+                    commands.add(commandText);
+                    rewards.set("keys." + args[1] + ".commands", commands);
+                    saveRewards();
+                    send(sender, "&aAdded reward command for &b" + args[1] + "&a. Total: &f" + commands.size());
+                }
+                case "listcommands" -> {
+                    if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall listcommands <keyId>");
+                    requireKey(args[1]);
+                    List<String> commands = rewards.getStringList("keys." + args[1] + ".commands");
+                    if (commands.isEmpty()) send(sender, "&cNo reward commands configured for " + args[1] + ".");
+                    else for (int i = 0; i < commands.size(); i++) send(sender, "&b" + (i + 1) + ". &f" + commands.get(i));
+                }
+                case "addkey" -> {
+                    if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall addkey <keyId> <interval-seconds> [amount]");
+                    String id = args[1].toLowerCase(Locale.ROOT);
+                    if (!id.matches("[a-z0-9_-]{1,32}") || rewards.contains("keys." + id)) throw new IllegalArgumentException("Invalid or existing key ID.");
+                    long seconds = Long.parseLong(args[2]);
+                    int count = args.length > 3 ? Integer.parseInt(args[3]) : 1;
+                    if (seconds < 1 || seconds > 31536000L || count < 1 || count > 1000000) throw new IllegalArgumentException("Invalid interval or amount.");
+                    String base = "keys." + id + ".";
+                    rewards.set(base + "enabled", true);
+                    rewards.set(base + "display-name", id);
+                    rewards.set(base + "interval-seconds", seconds);
+                    rewards.set(base + "amount", count);
+                    rewards.set(base + "mode", "ONLINE_AND_OFFLINE");
+                    rewards.set(base + "commands", new ArrayList<String>());
+                    nextRuns.put(id, System.currentTimeMillis() + seconds * 1000L);
+                    saveRewards();
+                    send(sender, "&aCreated key &b" + id + "&a. Add its crate command with /keyall setcommand " + id + " <command>.");
+                }
+                case "removekey" -> {
+                    if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall removekey <keyId>");
+                    requireKey(args[1]);
+                    rewards.set("keys." + args[1], null);
+                    nextRuns.remove(args[1]);
+                    pausedRemaining.remove(args[1]);
+                    countdownMarks.removeIf(mark -> mark.contains(":" + args[1] + ":"));
+                    pending.values().forEach(map -> map.remove(args[1]));
+                    pending.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+                    saveRewards();
+                    saveData();
+                    send(sender, "&aRemoved key &b" + args[1] + "&a and its queued rewards.");
+                }
                 case "give" -> {
                     if (args.length < 4) throw new IllegalArgumentException("Usage: /keyall give <player> <keyId> <amount>");
                     requireKey(args[2]); int n = Math.max(1, Integer.parseInt(args[3]));
@@ -677,6 +768,11 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         return true;
     }
 
+    private void saveRewards() {
+        try { rewards.save(new File(getDataFolder(), "rewards.yml")); }
+        catch (IOException ex) { throw new IllegalStateException("Could not save rewards.yml: " + ex.getMessage()); }
+    }
+
     private void requireKey(String id) { if (!nextRuns.containsKey(id)) throw new IllegalArgumentException(msg("errors.key-not-found")); }
 
     public String placeholderValue(String identifier, Player player) {
@@ -704,7 +800,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "setinterval", "timer", "setamount", "setcommand", "addcommand", "listcommands", "addkey", "removekey", "reset", "give", "giveall", "pending", "clearpending", "history", "stats", "preview", "settings", "boost").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
-        if (args.length == 2 && List.of("set", "reset", "giveall").contains(args[0].toLowerCase(Locale.ROOT))) return keyIds().stream().filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
+        if (args.length == 2 && List.of("set", "setinterval", "timer", "setamount", "setcommand", "addcommand", "listcommands", "reset", "giveall", "removekey").contains(args[0].toLowerCase(Locale.ROOT))) return keyIds().stream().filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("give", "pending", "clearpending").contains(args[0].toLowerCase(Locale.ROOT))) return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) return keyIds().stream().filter(s -> s.startsWith(args[2].toLowerCase(Locale.ROOT))).toList();
         return Collections.emptyList();
