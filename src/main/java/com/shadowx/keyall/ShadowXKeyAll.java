@@ -59,7 +59,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
     private void distribute(){
         int paid=0,queued=0;
-        for(Player p:Bukkit.getOnlinePlayers())if(eligible(p)){if(reward(p,amount(),key()))paid++;}
+        for(Player p:Bukkit.getOnlinePlayers())if(eligible(p)){if(reward(p,amount(),key()))paid++;else if(getConfig().getStringList("distribution.commands").isEmpty())pending.merge(p.getUniqueId(),amount(),Integer::sum);}
         if(mode().equalsIgnoreCase("ONLINE_AND_OFFLINE")){
             for(OfflinePlayer p:Bukkit.getOfflinePlayers()){
                 if(p.isOnline()||!p.hasPlayedBefore())continue;
@@ -82,7 +82,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
     private boolean reward(Player p,int count,String crate){
         List<String> commands=getConfig().getStringList("distribution.commands");
-        if(commands.isEmpty()){pending.merge(p.getUniqueId(),count,Integer::sum);return false;}
+        if(commands.isEmpty())return false;
         boolean success=true;
         for(String raw:commands){
             String cmd=raw.replace("%player%",p.getName()).replace("%uuid%",p.getUniqueId().toString()).replace("%key%",crate).replace("%amount%",String.valueOf(count));
