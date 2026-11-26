@@ -64,7 +64,7 @@ Tokens: `%player%`, `%uuid%`, `%key%`, `%amount%`.
 - `/keyall` - open GUI
 - `/keyall status` or `/keyall preview`
 - `/keyall start|stop|pause|resume|reload`
-- `/keyall set <keyId> <seconds>`
+- `/keyall set <keyId> <seconds>` / `/keyall setinterval <keyId> <seconds>` - change a key timer live and save it to rewards.yml.\n- `/keyall addkey <id> <display_name_with_underscores> <interval-seconds> <amount> [console command...]` - create a key timer.\n- `/keyall removekey <keyId>` - remove a key definition and its pending queue entries.\n- `/keyall setamount <keyId> <amount>` - change the default key quantity.\n- `/keyall setcommand <keyId> <console command...>` - replace reward command.\n- `/keyall addcommand <keyId> <console command...>` - append reward command.\n- `/keyall listcommands <keyId>` - show configured reward commands. Reward command tokens: `%player%`, `%uuid%`, `%key%`, `%amount%`.
 - `/keyall give <player> <keyId> <amount>` - online players receive immediately; offline players are queued.
 - `/keyall settings` - open admin settings GUI
 - `/keyall giveall <keyId> [amount]`
