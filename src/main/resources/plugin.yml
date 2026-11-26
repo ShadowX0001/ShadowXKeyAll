@@ -3,15 +3,17 @@ version: '${version}'
 main: com.shadowx.keyall.ShadowXKeyAll
 api-version: '1.21'
 authors: [ShadowX0001]
-description: Configurable timed crate-key rewards with persistent offline delivery.
+description: Configurable timed crate-key distribution with persistent offline rewards.
 softdepend: [PlaceholderAPI, ExcellentCrates, CrazyCrates, PhoenixCrates]
 commands:
   keyall:
-    description: ShadowXKeyAll commands
-    usage: /keyall
+    description: ShadowXKeyAll controls and timer GUI
+    usage: /keyall [status|start|stop|pause|resume|reload|set|give|giveall|preview|pending|clearpending]
     aliases: [ska]
 permissions:
   shadowxkeyall.admin:
+    description: Access all ShadowXKeyAll administration commands
     default: op
   shadowxkeyall.use:
+    description: Open the ShadowXKeyAll timer GUI
     default: true
