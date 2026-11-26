@@ -118,13 +118,13 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         ConfigurationSection keys = rewards.getConfigurationSection("keys");
         if (keys == null) return;
         long now = System.currentTimeMillis();
+        nextRuns.keySet().removeIf(id -> !keys.getBoolean(id + ".enabled", true));
         for (String id : keys.getKeys(false)) {
             if (!keys.getBoolean(id + ".enabled", true)) continue;
             long interval = Math.max(1, keys.getLong(id + ".interval-seconds", 3600)) * 1000L;
             nextRuns.putIfAbsent(id, now + interval);
         }
-        timersRunning = getConfig().getBoolean("timer.start-on-enable", true);
-    }
+        }
 
     private void loadData() {
         ConfigurationSection timers = playersData.getConfigurationSection("timers");
