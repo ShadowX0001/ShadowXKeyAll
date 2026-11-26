@@ -725,9 +725,12 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                 now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")).equals(schedules.getString("monthly.time", "18:00")))
             fireScheduleOnce("monthly", minute, schedules.getStringList("monthly.keys"));
         for (Map<?, ?> event : schedules.getMapList("events")) {
-            String eventId = String.valueOf(event.getOrDefault("id", "event"));
-            String date = String.valueOf(event.getOrDefault("date", ""));
-            String time = String.valueOf(event.getOrDefault("time", "00:00"));
+            Object eventIdValue = event.get("id");
+            Object dateValue = event.get("date");
+            Object timeValue = event.get("time");
+            String eventId = eventIdValue == null ? "event" : String.valueOf(eventIdValue);
+            String date = dateValue == null ? "" : String.valueOf(dateValue);
+            String time = timeValue == null ? "00:00" : String.valueOf(timeValue);
             if (!date.equals(now.toLocalDate().toString()) ||
                     !time.equals(now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")))) continue;
             List<String> eventKeys = new ArrayList<>();
