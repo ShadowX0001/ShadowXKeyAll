@@ -33,11 +33,11 @@ The jar is generated under `build/libs/`. GitHub Actions also builds every push 
 4. Set `distribution.commands` to the exact console command supported by your crate plugin.
 5. Run `/keyall reload`.
 
-Example ExcellentCrates command (verify syntax against your installed version):
+Default CrazyCrates virtual-key command (adjust the crate ID to an existing crate):
 ```yaml
 distribution:
   commands:
-    - "excellentcrates key give %player% %key% %amount%"
+    - "crazycrates give virtual %key% %amount% %player%"
 ```
 Supported command tokens: `%player%`, `%uuid%`, `%key%`, `%amount%`.
 
