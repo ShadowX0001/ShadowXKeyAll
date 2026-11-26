@@ -147,7 +147,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             if (rewards.getLong(path + ".interval-seconds", 0) < 1)
                 getLogger().warning("rewards.yml: " + path + ".interval-seconds must be at least 1; using 3600.");
             String mode = rewards.getString(path + ".mode", getConfig().getString("distribution.default-mode", "ONLINE_AND_OFFLINE"));
-            if (!List.of("ONLINE_ONLY", "ONLINE_AND_OFFLINE", "BOTH").contains(mode.toUpperCase(Locale.ROOT)))
+            if (!List.of("ONLINE_ONLY", "OFFLINE_ONLY", "ONLINE_AND_OFFLINE", "BOTH").contains(mode.toUpperCase(Locale.ROOT)))
                 getLogger().warning("rewards.yml: invalid mode for " + id + "; using ONLINE_AND_OFFLINE.");
         }
     }
@@ -159,8 +159,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         nextRuns.keySet().removeIf(id -> !keys.getBoolean(id + ".enabled", true));
         for (String id : keys.getKeys(false)) {
             if (!keys.getBoolean(id + ".enabled", true)) continue;
-            long interval = Math.max(1, keys.getLong(id + ".interval-seconds", 3600)) * 1000L;
-            nextRuns.putIfAbsent(id, now + interval);
+            nextRuns.putIfAbsent(id, now + interval(id));
         }
         }
 
