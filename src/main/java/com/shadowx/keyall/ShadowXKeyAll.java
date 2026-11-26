@@ -47,6 +47,8 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private boolean timersRunning;
     private long lastSave;
     private long lastPendingRetry;
+    private double boostMultiplier = 1.0;
+    private long boostExpiresAt = 0L;
 
     @Override public void onEnable() {
         getLogger().info("Loading config.yml...");
@@ -182,6 +184,8 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             if (timers.contains(id + ".paused-remaining")) pausedRemaining.put(id, timers.getLong(id + ".paused-remaining"));
         }
         timersRunning = playersData.getBoolean("state.running", getConfig().getBoolean("timer.start-on-enable", true));
+        boostMultiplier = Math.max(1.0, playersData.getDouble("state.boost-multiplier", 1.0));
+        boostExpiresAt = playersData.getLong("state.boost-expires-at", 0L);
         ConfigurationSection queued = playersData.getConfigurationSection("pending");
         if (queued != null) for (String uuidText : queued.getKeys(false)) {
             try {
@@ -202,6 +206,8 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
 
     private void saveData() {
         playersData.set("state.running", timersRunning);
+        playersData.set("state.boost-multiplier", boostMultiplier);
+        playersData.set("state.boost-expires-at", boostExpiresAt);
         playersData.set("timers", null);
         for (String id : nextRuns.keySet()) {
             playersData.set("timers." + id + ".next-run", nextRuns.get(id));
@@ -219,7 +225,12 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
 
     private Set<String> keyIds() { return new LinkedHashSet<>(nextRuns.keySet()); }
     private String displayName(String id) { return color(rewards.getString("keys." + id + ".display-name", id)); }
-    private int amount(String id) { return Math.max(1, rewards.getInt("keys." + id + ".amount", 1)); }
+    private int amount(String id) {
+        int base = Math.max(1, rewards.getInt("keys." + id + ".amount", 1));
+        if (boostExpiresAt > System.currentTimeMillis() && boostMultiplier > 1.0)
+            return Math.max(1, (int) Math.ceil(base * boostMultiplier));
+        return base;
+    }
     private long interval(String id) {
         String base = "keys." + id + ".";
         long seconds = Math.max(1, rewards.getLong(base + "interval-seconds", 3600));
@@ -237,6 +248,12 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private void tick() {
         if (!getConfig().getBoolean("maintenance.enabled", false)) runSchedules();
         long now = System.currentTimeMillis();
+        if (boostExpiresAt > 0 && now >= boostExpiresAt) {
+            boostMultiplier = 1.0;
+            boostExpiresAt = 0L;
+            saveData();
+            broadcast("&eKeyAll boost has expired.");
+        }
         if (timersRunning && !getConfig().getBoolean("maintenance.enabled", false)) {
             for (String id : new ArrayList<>(nextRuns.keySet())) {
                 long left = Math.max(0, (nextRuns.get(id) - now + 999) / 1000);
@@ -605,6 +622,22 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                     if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall clearpending <player>");
                     pending.remove(Bukkit.getOfflinePlayer(args[1]).getUniqueId()); send(sender, "&aPending rewards cleared.");
                 }
+                case "boost" -> {
+                    if (args.length < 2) throw new IllegalArgumentException("Usage: /keyall boost <off|multiplier> [seconds]");
+                    if (args[1].equalsIgnoreCase("off")) {
+                        boostMultiplier = 1.0; boostExpiresAt = 0L;
+                        send(sender, "&eKeyAll boost disabled.");
+                    } else {
+                        if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall boost <multiplier> <seconds>");
+                        double multiplier = Double.parseDouble(args[1]);
+                        long seconds = Long.parseLong(args[2]);
+                        if (multiplier < 1.0 || multiplier > 10.0 || seconds < 1) throw new IllegalArgumentException("Multiplier must be 1-10 and duration must be positive.");
+                        boostMultiplier = multiplier;
+                        boostExpiresAt = System.currentTimeMillis() + seconds * 1000L;
+                        send(sender, "&aKeyAll boost set to x" + multiplier + " for " + format(seconds * 1000L) + ".");
+                    }
+                    saveData();
+                }
                 case "stats" -> {
                     int pendingPlayers = pending.size();
                     int pendingTotal = pending.values().stream().flatMap(map -> map.values().stream()).mapToInt(Integer::intValue).sum();
@@ -651,7 +684,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         return null;
     }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "reset", "give", "giveall", "pending", "clearpending", "history", "stats", "preview", "settings").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
+        if (args.length == 1) return List.of("status", "start", "stop", "pause", "resume", "reload", "set", "reset", "give", "giveall", "pending", "clearpending", "history", "stats", "preview", "settings", "boost").stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("set", "reset", "giveall").contains(args[0].toLowerCase(Locale.ROOT))) return keyIds().stream().filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 2 && List.of("give", "pending", "clearpending").contains(args[0].toLowerCase(Locale.ROOT))) return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) return keyIds().stream().filter(s -> s.startsWith(args[2].toLowerCase(Locale.ROOT))).toList();
