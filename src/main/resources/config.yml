@@ -11,7 +11,7 @@ distribution:
   # Console commands; supported tokens: %player%, %uuid%, %key%, %amount%
   # Adjust this command to match your crate plugin.
   commands:
-    - "excellentcrates key give %player% %key% %amount%"
+    - "crazycrates give virtual %key% %amount% %player%"
 eligibility:
   permission: ""
   minimum-playtime-seconds: 0
