@@ -1,9 +1,9 @@
-# ShadowXKeyAll main settings. Durations are seconds.
+# ShadowXKeyAll settings. Durations are seconds.
 timer:
   start-on-enable: true
   save-interval-seconds: 30
 distribution:
-  default-mode: ONLINE_AND_OFFLINE # ONLINE_ONLY, ONLINE_AND_OFFLINE, BOTH (per-key mode is in rewards.yml)
+  default-mode: ONLINE_AND_OFFLINE # ONLINE_ONLY, OFFLINE_ONLY, ONLINE_AND_OFFLINE
   retry-pending-on-join: true
 eligibility:
   require-not-afk: false
@@ -22,6 +22,7 @@ countdown:
     seconds: [60, 30, 10, 5, 4, 3, 2, 1]
   scoreboard:
     enabled: false
+    title: "&b&lKEYALL"
 announcements:
   enabled: true
 gui:
@@ -29,6 +30,5 @@ gui:
   permission: shadowxkeyall.use
 integrations:
   placeholderapi: true
-  crate-command-fallback: true
 anti-abuse:
   one-reward-per-cycle: true

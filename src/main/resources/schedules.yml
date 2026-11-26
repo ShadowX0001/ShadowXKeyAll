@@ -1,4 +1,4 @@
-# Optional calendar schedules. Times use server local timezone and 24-hour HH:mm.
+# Calendar-based automatic extra distributions. Timezone: "server" or a valid ZoneId.
 enabled: false
 timezone: "server"
 daily:

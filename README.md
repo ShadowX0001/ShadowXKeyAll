@@ -1,63 +1,84 @@
 # ShadowXKeyAll
 
-Timed crate-key distribution plugin for Paper servers. The project is built with Java 21 and Paper API 1.21.4.
+Multi-key timed crate distribution for Paper servers. Built with Java 21 and Paper API 1.21.4.
 
-## Features
-- Configurable global interval and automatic distribution.
-- Online-only or online + offline reward queue.
-- Offline rewards persist in `plugins/ShadowXKeyAll/data.yml` and are delivered on next join.
-- Permission, minimum-playtime, AFK inactivity and world blacklist eligibility filters.
-- BossBar and ActionBar countdowns.
-- Configurable pre-distribution announcements.
-- Inventory timer GUI.
-- Pause, resume, start, stop, set timer, reload, preview, give, giveall and pending-reward admin commands.
-- Timer state and pending rewards persist across restart.
-- Configurable console reward commands, so the crate command can be adapted to the installed crate plugin.
+## Current features
+- Multiple independent key timers configured in `rewards.yml`.
+- Per-key amount, display name, reward commands, permission, minimum playtime, world blacklist and online/offline mode.
+- Persistent timer state and per-player pending key queues in `data/players.yml`.
+- Offline rewards are delivered when the player next joins and passes configured eligibility checks.
+- First-join, daily, weekly and monthly per-key join bonuses.
+- Optional daily, weekly and monthly calendar schedules in `schedules.yml`.
+- BossBar, ActionBar, chat countdown and configurable sidebar countdown.
+- Configurable warning chat, title/subtitle and sounds.
+- Inventory overview GUI and pending reward count.
+- PlaceholderAPI expansion when PlaceholderAPI is installed.
+- Distribution and reward history in `data/history.yml`.
+- Admin commands with tab completion.
 
 ## Requirements
 - Java 21
 - Paper 1.21.x (compiled against Paper API 1.21.4)
-- A crate plugin with a console command that grants keys
+- A crate plugin exposing a console command to grant keys (default example uses CrazyCrates)
+
+## Configuration files
+- `config.yml`: general settings and display toggles.
+- `messages.yml`: player-facing messages.
+- `rewards.yml`: independent key definitions, timers, commands and bonuses.
+- `announcements.yml`: announcement channels and text.
+- `gui.yml`: inventory layout and item text.
+- `schedules.yml`: calendar-based distributions.
+- `sounds.yml`: countdown, reward and announcement sounds.
+- `data/players.yml`: persistent timer, player claims and pending rewards.
+- `data/history.yml`: recent distribution and reward history.
+
+All resource configuration files are created automatically on first start. Data files are created automatically.
 
 ## Build
 Use Gradle 8.10.2 or newer:
 ```bash
 gradle clean build
 ```
-The jar is generated under `build/libs/`. GitHub Actions also builds every push to `main` and uploads the jar as a workflow artifact.
+The JAR is generated under `build/libs/`. GitHub Actions builds pushes to supported branches and uploads a `ShadowXKeyAll` artifact.
 
 ## Install
-1. Download the JAR from the successful GitHub Actions build artifact.
-2. Put it in the server's `plugins` directory and start Paper.
-3. Edit `plugins/ShadowXKeyAll/config.yml`.
-4. Set `distribution.commands` to the exact console command supported by your crate plugin.
-5. Run `/keyall reload`.
+1. Install the JAR in the server's `plugins` folder.
+2. Start Paper once to generate configuration files.
+3. Edit `plugins/ShadowXKeyAll/rewards.yml` and set the real crate IDs and correct console command syntax.
+4. Run `/keyall reload`.
 
-Default CrazyCrates virtual-key command (adjust the crate ID to an existing crate):
+Default CrazyCrates command example:
 ```yaml
-distribution:
-  commands:
-    - "crazycrates give virtual %key% %amount% %player%"
+commands:
+  - "crazycrates give virtual vote %amount% %player%"
 ```
-Supported command tokens: `%player%`, `%uuid%`, `%key%`, `%amount%`.
+Tokens: `%player%`, `%uuid%`, `%key%`, `%amount%`.
 
 ## Commands
-- `/keyall` - open timer GUI
-- `/keyall status`
+- `/keyall` - open GUI
+- `/keyall status` or `/keyall preview`
 - `/keyall start|stop|pause|resume|reload`
-- `/keyall set <seconds>`
-- `/keyall give <online-player> <amount>`
-- `/keyall giveall [amount]`
-- `/keyall preview`
+- `/keyall set <keyId> <seconds>`
+- `/keyall give <online-player> <keyId> <amount>`
+- `/keyall giveall <keyId> [amount]`
 - `/keyall pending <player>`
 - `/keyall clearpending <player>`
+- `/keyall history`
 
-Admin permission: `shadowxkeyall.admin` (default OP). The timer GUI is available to players with `shadowxkeyall.use` (default true).
+Admin permission: `shadowxkeyall.admin` (default OP). GUI permission: `shadowxkeyall.use` (default true).
 
-## Compatibility
-Paper 1.21.x is the supported target. Java 21 is required. Newer Paper releases may remain compatible while Bukkit/Paper APIs stay compatible, but future Minecraft versions cannot be guaranteed in advance. Spigot is not the primary tested platform.
+## PlaceholderAPI
+When installed, these placeholders are registered:
+- `%shadowxkeyall_keys_count%`
+- `%shadowxkeyall_next_key%`
+- `%shadowxkeyall_next_time%`
+- `%shadowxkeyall_pending_total%`
+- `%shadowxkeyall_time_<keyId>%`
+- `%shadowxkeyall_pending_<keyId>%`
 
-## Important behavior
-- In `ONLINE_AND_OFFLINE` mode, offline accounts that have joined before receive a queued reward each cycle. Their permission/playtime/world eligibility is checked when they next join; pending rewards remain queued until eligible.
-- The crate-give command is intentionally configurable. The default is an example; ensure it matches the installed crate plugin's command syntax before enabling automatic distribution.
-- This build has compile verification through GitHub Actions. Server-side behavior still needs your planned final test on your Paper server.
+## Important notes
+- `ONLINE_AND_OFFLINE` queues rewards for previously joined offline players. Their permission, playtime, AFK and world eligibility is evaluated when they next join.
+- `OFFLINE_ONLY` skips online delivery and queues rewards for offline players.
+- `ONLINE_ONLY` does not create offline queues.
+- Crate reward commands are integration fallbacks: Bukkit confirming that a command was dispatched does not prove the crate plugin actually granted the key. Test your exact crate command before enabling automatic cycles.
+- Paper 1.21.x is the supported target. Other Paper versions may work while APIs remain compatible. Server-side behavior still requires live testing on the target server.

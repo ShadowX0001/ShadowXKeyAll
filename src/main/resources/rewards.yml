@@ -1,4 +1,5 @@
-# Independent key definitions. Each key has its own timer and reward command.
+# Each key is an independent timer. Commands are run from console.
+# Modes: ONLINE_ONLY, OFFLINE_ONLY, ONLINE_AND_OFFLINE (BOTH is accepted as an alias).
 keys:
   vote:
     enabled: true
