@@ -7,7 +7,6 @@ keys:
     interval-seconds: 3600
     player-interval-seconds: 0 # 0 disables individual cooldowns
     amount: 1
-    money: 0.0 # Optional Vault economy reward per key
     mode: ONLINE_AND_OFFLINE
     commands:
       - "crazycrates give virtual vote %amount% %player%"

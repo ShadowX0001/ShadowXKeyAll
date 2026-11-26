@@ -28,7 +28,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -51,9 +50,6 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     private double boostMultiplier = 1.0;
     private long boostExpiresAt = 0L;
     private Listener voteListener;
-    private Object economyProvider;
-    private Method economyDepositMethod;
-    private boolean economyWarningLogged;
 
     @Override public void onEnable() {
         getLogger().info("Loading config.yml...");
@@ -78,7 +74,6 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             getLogger().info("PlaceholderAPI expansion registered: %shadowxkeyall_<placeholder>%");
         }
         registerVoteIntegration();
-        setupEconomyIntegration();
         ticker = Bukkit.getScheduler().runTaskTimer(this, this::tick, 20L, 20L);
         for (Player player : Bukkit.getOnlinePlayers()) {
             activity.put(player.getUniqueId(), System.currentTimeMillis());
@@ -377,7 +372,6 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
             catch (RuntimeException ex) { success = false; getLogger().warning("Reward command failed for " + id + ": " + ex.getMessage()); }
         }
         if (success) {
-            depositKeyMoney(player, id, count);
             long playerInterval = rewards.getLong("keys." + id + ".player-interval-seconds", 0L);
             if (playerInterval > 0) playersData.set("player-timers." + player.getUniqueId() + "." + id,
                     System.currentTimeMillis() + playerInterval * 1000L);
@@ -847,45 +841,6 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         while (history.size() > 500) history.remove(0);
     }
 
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private void setupEconomyIntegration() {
-        org.bukkit.plugin.Plugin vault = Bukkit.getPluginManager().getPlugin("Vault");
-        if (vault == null) return;
-        try {
-            Class<?> economyClass = Class.forName("net.milkbowl.vault.economy.Economy", true, vault.getClass().getClassLoader());
-            org.bukkit.plugin.RegisteredServiceProvider registration = Bukkit.getServicesManager().getRegistration((Class) economyClass);
-            if (registration == null) {
-                getLogger().warning("Vault is installed but no economy provider is registered.");
-                return;
-            }
-            economyProvider = registration.getProvider();
-            economyDepositMethod = economyClass.getMethod("depositPlayer", org.bukkit.OfflinePlayer.class, double.class);
-            getLogger().info("Vault economy provider hooked.");
-        } catch (ReflectiveOperationException ex) {
-            getLogger().warning("Could not hook Vault economy: " + ex.getMessage());
-        }
-    }
-
-    private void depositKeyMoney(Player player, String id, int count) {
-        double perKey = rewards.getDouble("keys." + id + ".money", 0.0);
-        if (perKey <= 0.0) return;
-        if (economyProvider == null || economyDepositMethod == null) {
-            if (!economyWarningLogged) {
-                getLogger().warning("A key has a money reward but Vault economy is not available; money rewards are skipped.");
-                economyWarningLogged = true;
-            }
-            return;
-        }
-        try {
-            Object response = economyDepositMethod.invoke(economyProvider, player, perKey * count);
-            Object type = response.getClass().getField("type").get(response);
-            if (!"SUCCESS".equalsIgnoreCase(String.valueOf(type)))
-                getLogger().warning("Vault rejected money reward for " + player.getName() + ": " + type);
-        } catch (ReflectiveOperationException ex) {
-            getLogger().warning("Vault money reward failed for " + player.getName() + ": " + ex.getMessage());
-        }
-    }
 
     private void registerVoteIntegration() {
         if (!getConfig().getBoolean("integrations.voting.enabled", false)) return;
