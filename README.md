@@ -15,6 +15,7 @@ Multi-key timed crate distribution for Paper servers. Built with Java 21 and Pap
 - Admin settings GUI for BossBar, ActionBar, chat, scoreboard and maintenance toggles.
 - Optional asynchronous Discord webhook notifications.
 - Optional NuVotifier/Votifier vote-event rewards for configured key IDs.
+- Optional Vault economy money rewards per key (requires a registered Vault economy provider).
 - BossBar, ActionBar, chat countdown and configurable sidebar countdown.
 - Configurable warning chat, title/subtitle and sounds.
 - Inventory overview GUI and pending reward count.
