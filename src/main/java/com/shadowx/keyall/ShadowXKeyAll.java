@@ -317,6 +317,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
     }
 
     private boolean eligible(Player p, String id) {
+        if (!nextRuns.containsKey(id)) return false;
         long playerNext = playersData.getLong("player-timers." + p.getUniqueId() + "." + id, 0L);
         if (playerNext > System.currentTimeMillis()) return false;
         String perm = rewards.getString("keys." + id + ".permission", "");
