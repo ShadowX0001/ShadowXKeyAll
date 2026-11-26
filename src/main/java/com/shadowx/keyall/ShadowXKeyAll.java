@@ -603,14 +603,6 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                     countdownMarks.removeIf(mark -> mark.startsWith(args[1] + ":") || mark.contains(":" + args[1] + ":"));
                     send(sender, "&aTimer reset for " + args[1] + ".");
                 }
-                case "set" -> {
-                    if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall set <keyId> <seconds>");
-                    requireKey(args[1]);
-                    long newDelay = Math.max(1, Long.parseLong(args[2])) * 1000L;
-                    nextRuns.put(args[1], System.currentTimeMillis() + newDelay);
-                    if (pausedRemaining.containsKey(args[1])) pausedRemaining.put(args[1], newDelay);
-                    send(sender, "&aTimer for " + args[1] + " updated.");
-                }
                 case "setinterval", "set" -> {
                     if (args.length < 3) throw new IllegalArgumentException("Usage: /keyall setinterval <keyId> <seconds>");
                     requireKey(args[1]);
