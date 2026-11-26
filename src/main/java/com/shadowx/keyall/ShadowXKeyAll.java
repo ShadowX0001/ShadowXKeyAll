@@ -171,7 +171,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
         ConfigurationSection keys = rewards.getConfigurationSection("keys");
         if (keys == null) return;
         long now = System.currentTimeMillis();
-        nextRuns.keySet().removeIf(id -> !keys.getBoolean(id + ".enabled", true));
+        nextRuns.keySet().removeIf(id -> !keys.contains(id) || !keys.getBoolean(id + ".enabled", true));
         for (String id : keys.getKeys(false)) {
             if (!keys.getBoolean(id + ".enabled", true)) continue;
             nextRuns.putIfAbsent(id, now + interval(id));
@@ -581,7 +581,7 @@ public final class ShadowXKeyAll extends JavaPlugin implements Listener, Command
                 case "reload" -> {
                     saveData();
                     reloadConfig(); loadAllFiles();
-                    for (String id : new ArrayList<>(nextRuns.keySet())) if (!rewards.getBoolean("keys." + id + ".enabled", true)) nextRuns.remove(id);
+                    for (String id : new ArrayList<>(nextRuns.keySet())) if (!rewards.contains("keys." + id) || !rewards.getBoolean("keys." + id + ".enabled", true)) nextRuns.remove(id);
                     initializeTimers(); refreshBars(); send(sender, msg("admin.reloaded"));
                 }
                 case "start" -> {
